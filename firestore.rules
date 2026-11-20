@@ -1,0 +1,154 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid))
+          .data.role == 'admin';
+    }
+
+    function isOwner() {
+      return signedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    function validEvent(eventId) {
+      return request.resource.data.id == eventId
+        && request.resource.data.name is string
+        && request.resource.data.pic is string
+        && request.resource.data.date is timestamp
+        && request.resource.data.location is string
+        && request.resource.data.description is string
+        && request.resource.data.status is string
+        && request.resource.data.category is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.createdBy is string
+        && request.resource.data.isPublished is bool
+        && request.resource.data.reminderDaysBefore is list
+        && request.resource.data.approvalStatus in ['pending', 'approved', 'rejected']
+        && (!request.resource.data.keys().hasAny(['updatedAt'])
+          || request.resource.data.updatedAt is timestamp)
+        && (!request.resource.data.keys().hasAny(['reviewedBy'])
+          || request.resource.data.reviewedBy is string)
+        && (!request.resource.data.keys().hasAny(['reviewedAt'])
+          || request.resource.data.reviewedAt is timestamp)
+        && (!request.resource.data.keys().hasAny(['rejectionReason'])
+          || request.resource.data.rejectionReason is string);
+    }
+
+    function reviewFieldsUnchanged() {
+      return unchangedOptionalField('reviewedBy')
+        && unchangedOptionalField('reviewedAt')
+        && unchangedOptionalField('rejectionReason');
+    }
+
+    function unchangedOptionalField(fieldName) {
+      return request.resource.data.keys().hasAny([fieldName])
+          == resource.data.keys().hasAny([fieldName])
+        && (!resource.data.keys().hasAny([fieldName])
+          || request.resource.data[fieldName] == resource.data[fieldName]);
+    }
+
+    function validOwnerEventUpdate(eventId) {
+      return isOwner()
+        && validEvent(eventId)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.approvalStatus == 'pending'
+        && request.resource.data.isPublished == false
+        && reviewFieldsUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'pic',
+          'date',
+          'location',
+          'description',
+          'status',
+          'category',
+          'updatedAt',
+          'reminderDaysBefore',
+          'approvalStatus',
+          'isPublished'
+        ]);
+    }
+
+    function validAdminEventUpdate(eventId) {
+      return isAdmin()
+        && validEvent(eventId)
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt is timestamp
+        && (
+          (resource.data.approvalStatus == 'pending'
+            && request.resource.data.approvalStatus in ['approved', 'rejected'])
+          || (resource.data.approvalStatus == 'approved'
+            && request.resource.data.approvalStatus == 'approved')
+        )
+        && (!request.resource.data.isPublished
+          || request.resource.data.approvalStatus == 'approved')
+        && (request.resource.data.approvalStatus != 'rejected'
+          || (request.resource.data.keys().hasAny(['rejectionReason'])
+            && request.resource.data.rejectionReason is string
+            && request.resource.data.rejectionReason.size() > 0));
+    }
+
+    match /events/{eventId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.createdBy == request.auth.uid)
+        || (resource.data.approvalStatus == 'approved'
+          && resource.data.isPublished == true);
+
+      allow create: if signedIn()
+        && validEvent(eventId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.approvalStatus == 'pending'
+        && request.resource.data.isPublished == false
+        && !request.resource.data.keys().hasAny([
+          'reviewedBy',
+          'reviewedAt',
+          'rejectionReason'
+        ]);
+
+      allow update: if validOwnerEventUpdate(eventId)
+        || validAdminEventUpdate(eventId);
+
+      allow delete: if isOwner();
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn()
+        && (request.auth.uid == userId || isAdmin());
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'user'
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'name',
+          'email',
+          'nim',
+          'major',
+          'role'
+        ]);
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && resource.data.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'email',
+          'nim',
+          'major'
+        ]);
+
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+  }
+}

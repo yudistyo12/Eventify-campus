@@ -35,16 +35,24 @@ class _EventsTabState extends State<EventsTab> {
       context: context,
       builder: (BuildContext ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
           title: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded, color: AppTheme.accentPink, size: 28),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.accentPink,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Konfirmasi Hapus',
                 style: TextStyle(
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -53,7 +61,9 @@ class _EventsTabState extends State<EventsTab> {
           content: Text(
             'Apakah Anda yakin ingin menghapus event ini secara permanen dari database?',
             style: TextStyle(
-              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+              color: isDark
+                  ? AppTheme.darkTextSecondary
+                  : AppTheme.lightTextSecondary,
               fontSize: 14,
             ),
           ),
@@ -61,7 +71,11 @@ class _EventsTabState extends State<EventsTab> {
             TextButton(
               child: Text(
                 'Batal',
-                style: TextStyle(color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                style: TextStyle(
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
+                ),
               ),
               onPressed: () => Navigator.of(ctx).pop(),
             ),
@@ -69,21 +83,43 @@ class _EventsTabState extends State<EventsTab> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.accentPink,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 elevation: 0,
               ),
-              child: const Text('Hapus', style: TextStyle(fontWeight: FontWeight.bold)),
-              onPressed: () {
-                Provider.of<AppState>(context, listen: false).deleteEvent(eventId);
+              child: const Text(
+                'Hapus',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              onPressed: () async {
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Event berhasil dihapus'),
-                    backgroundColor: AppTheme.accentPink,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
+                try {
+                  await Provider.of<AppState>(
+                    context,
+                    listen: false,
+                  ).deleteEvent(eventId);
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Event berhasil dihapus'),
+                      backgroundColor: AppTheme.successGreen,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                } catch (error) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus event: $error'),
+                      backgroundColor: AppTheme.accentPink,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
               },
             ),
           ],
@@ -105,7 +141,10 @@ class _EventsTabState extends State<EventsTab> {
             padding: const EdgeInsets.only(right: 16.0),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.successGreen.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(20),
@@ -130,13 +169,20 @@ class _EventsTabState extends State<EventsTab> {
             children: [
               // Search Input Box
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 8.0,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? AppTheme.darkCard : Colors.indigo.withOpacity(0.04),
+                    color: isDark
+                        ? AppTheme.darkCard
+                        : Colors.indigo.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark ? Colors.white.withOpacity(0.05) : Colors.indigo.withOpacity(0.05),
+                      color: isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.indigo.withOpacity(0.05),
                     ),
                   ),
                   child: TextField(
@@ -144,13 +190,17 @@ class _EventsTabState extends State<EventsTab> {
                     onChanged: (val) => appState.setSearchQuery(val),
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Cari berdasarkan nama, PIC, lokasi...',
                       hintStyle: TextStyle(
                         fontSize: 13,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                       ),
                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       suffixIcon: _searchController.text.isNotEmpty
@@ -163,7 +213,10 @@ class _EventsTabState extends State<EventsTab> {
                             )
                           : null,
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -188,16 +241,22 @@ class _EventsTabState extends State<EventsTab> {
                           cat,
                           style: TextStyle(
                             fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             color: isSelected
                                 ? Colors.white
-                                : (isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary),
+                                : (isDark
+                                      ? AppTheme.darkTextPrimary
+                                      : AppTheme.lightTextPrimary),
                           ),
                         ),
                         selected: isSelected,
                         onSelected: (_) => appState.selectCategory(cat),
                         selectedColor: AppTheme.primaryIndigo,
-                        backgroundColor: isDark ? AppTheme.darkCard : Colors.indigo.withOpacity(0.04),
+                        backgroundColor: isDark
+                            ? AppTheme.darkCard
+                            : Colors.indigo.withOpacity(0.04),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                           side: const BorderSide(color: Colors.transparent),
@@ -210,7 +269,12 @@ class _EventsTabState extends State<EventsTab> {
 
               // List statistics summary
               Padding(
-                padding: const EdgeInsets.only(left: 24, right: 24, top: 16, bottom: 8),
+                padding: const EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 16,
+                  bottom: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -219,7 +283,9 @@ class _EventsTabState extends State<EventsTab> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
                       ),
                     ),
                   ],
@@ -238,12 +304,16 @@ class _EventsTabState extends State<EventsTab> {
                                 padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: isDark ? AppTheme.darkCard : Colors.indigo.withOpacity(0.04),
+                                  color: isDark
+                                      ? AppTheme.darkCard
+                                      : Colors.indigo.withOpacity(0.04),
                                 ),
                                 child: Icon(
                                   Icons.event_note_rounded,
                                   size: 48,
-                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                  color: isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.lightTextSecondary,
                                 ),
                               ),
                               const SizedBox(height: 16),
@@ -252,7 +322,9 @@ class _EventsTabState extends State<EventsTab> {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                                  color: isDark
+                                      ? AppTheme.darkTextPrimary
+                                      : AppTheme.lightTextPrimary,
                                 ),
                               ),
                               const SizedBox(height: 6),
@@ -260,7 +332,9 @@ class _EventsTabState extends State<EventsTab> {
                                 'Gunakan tombol tambah untuk menambahkan event baru.',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                  color: isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.lightTextSecondary,
                                 ),
                                 textAlign: TextAlign.center,
                               ),
@@ -270,27 +344,36 @@ class _EventsTabState extends State<EventsTab> {
                       )
                     : ListView.builder(
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 8,
+                        ),
                         itemCount: appState.filteredEvents.length,
                         itemBuilder: (context, index) {
                           final event = appState.filteredEvents[index];
                           return EventCard(
                             event: event,
+                            showActions: appState.canManageEvent(event),
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => EventDetailScreen(event: event)),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      EventDetailScreen(event: event),
+                                ),
                               );
                             },
                             onEdit: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => AddEditEventScreen(event: event),
+                                  builder: (context) =>
+                                      AddEditEventScreen(event: event),
                                 ),
                               );
                             },
-                            onDelete: () => _showDeleteConfirmation(context, event.id),
+                            onDelete: () =>
+                                _showDeleteConfirmation(context, event.id),
                           );
                         },
                       ),

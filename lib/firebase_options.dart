@@ -41,23 +41,23 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCLj51FnvtidLeB4cvSZKnQT91BPY1i0-0',
-    appId: '1:25608873835:web:969faca9a8685a89910e2e',
-    messagingSenderId: '25608873835',
-    projectId: 'eventify-campus-5d081',
-    authDomain: 'eventify-campus-5d081.firebaseapp.com',
-    storageBucket: 'eventify-campus-5d081.firebasestorage.app',
-    measurementId: 'G-N5CYF3RE6G',
+    apiKey: 'AIzaSyAHKn40BJMpmpx10pm4bGPhN2rcid1_qy4',
+    appId: '1:296116940516:web:ebc6f0e99c2562f06e46f1',
+    messagingSenderId: '296116940516',
+    projectId: 'eventify-campus-15122',
+    authDomain: 'eventify-campus-15122.firebaseapp.com',
+    databaseURL: 'https://eventify-campus-15122-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'eventify-campus-15122.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAx0bjT3BaJx2bdVhf-ticcCtyS-F6rFFw',
-    appId: '1:25608873835:android:cfcd4176714bd7c3910e2e',
-    messagingSenderId: '25608873835',
-    projectId: 'eventify-campus-5d081',
-    storageBucket: 'eventify-campus-5d081.firebasestorage.app',
+    apiKey: 'AIzaSyDdKBlY0OF-JVrYQOuIrgTzWShzc1Yuz5E',
+    appId: '1:296116940516:android:a8b889e4cbc0aebf6e46f1',
+    messagingSenderId: '296116940516',
+    projectId: 'eventify-campus-15122',
+    databaseURL: 'https://eventify-campus-15122-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'eventify-campus-15122.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBYWuv4n53rec3oM9zOmiY2YSIWcn2ltAk',
     appId: '1:25608873835:ios:64ac5b2cd2f06980910e2e',
@@ -77,12 +77,12 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCLj51FnvtidLeB4cvSZKnQT91BPY1i0-0',
-    appId: '1:25608873835:web:1f0d4238e3932080910e2e',
-    messagingSenderId: '25608873835',
-    projectId: 'eventify-campus-5d081',
-    authDomain: 'eventify-campus-5d081.firebaseapp.com',
-    storageBucket: 'eventify-campus-5d081.firebasestorage.app',
-    measurementId: 'G-4J4V6QXLZT',
+    apiKey: 'AIzaSyAHKn40BJMpmpx10pm4bGPhN2rcid1_qy4',
+    appId: '1:296116940516:web:342a06706049679c6e46f1',
+    messagingSenderId: '296116940516',
+    projectId: 'eventify-campus-15122',
+    authDomain: 'eventify-campus-15122.firebaseapp.com',
+    databaseURL: 'https://eventify-campus-15122-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'eventify-campus-15122.firebasestorage.app',
   );
 }

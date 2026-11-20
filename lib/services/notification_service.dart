@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import '../models/event_model.dart';
@@ -10,9 +12,11 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin =
+      FlutterLocalNotificationsPlugin();
 
   bool _isInitialized = false;
+  bool _canScheduleExactNotifications = false;
 
   /// Initialize notification service — call once in main.dart
   Future<void> initialize() async {
@@ -21,7 +25,9 @@ class NotificationService {
     // Initialize timezone data for scheduled notifications
     tz_data.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -47,14 +53,31 @@ class NotificationService {
 
   /// Request notification permissions
   Future<void> _requestPermissions() async {
-    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final androidPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (androidPlugin != null) {
       await androidPlugin.requestNotificationsPermission();
+      var canScheduleExact =
+          await androidPlugin.canScheduleExactNotifications() ?? false;
+      if (!canScheduleExact) {
+        await androidPlugin.requestExactAlarmsPermission();
+        canScheduleExact =
+            await androidPlugin.canScheduleExactNotifications() ?? false;
+      }
+      _canScheduleExactNotifications = canScheduleExact;
+      if (!canScheduleExact && kDebugMode) {
+        debugPrint(
+          '[NotificationService] Exact alarm access denied; using inexact scheduling.',
+        );
+      }
     }
 
-    final iosPlugin = _plugin.resolvePlatformSpecificImplementation<
-        IOSFlutterLocalNotificationsPlugin>();
+    final iosPlugin = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
     if (iosPlugin != null) {
       await iosPlugin.requestPermissions(alert: true, badge: true, sound: true);
     }
@@ -141,46 +164,78 @@ class NotificationService {
     );
   }
 
+  /// Show FCM notifications while the app is in the foreground.
+  Future<void> showRemoteMessage(RemoteMessage message) async {
+    final notification = message.notification;
+    if (notification == null) return;
+
+    final eventIdValue = message.data['eventId'];
+    final eventId = eventIdValue is String ? eventIdValue : null;
+    final notificationId =
+        (message.messageId?.hashCode ?? eventId?.hashCode ?? 0) & 0x7fffffff;
+
+    await _plugin.show(
+      notificationId,
+      notification.title ?? 'Eventify Campus',
+      notification.body ?? '',
+      const NotificationDetails(
+        android: _eventChannel,
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: eventId == null ? null : 'event_approved:$eventId',
+    );
+  }
+
   // =============================================
   // SCHEDULED REMINDER NOTIFICATIONS
   // =============================================
 
-  /// Schedule a reminder notification 1 day before event
-  Future<void> scheduleEventReminder(EventModel event) async {
-    final reminderTime = event.date.subtract(const Duration(days: 1));
+  /// Replace the configurable deadline reminders for an event.
+  Future<void> scheduleEventReminders(EventModel event) async {
+    await cancelEventReminders(event.id);
+    if (event.status != 'Aktif') return;
 
-    // Don't schedule if reminder time already passed
-    if (reminderTime.isBefore(DateTime.now())) {
-      if (kDebugMode) print('[NotificationService] Reminder time already passed for: ${event.name}');
-      return;
-    }
+    final selectedDays = event.reminderDaysBefore.toSet();
+    for (final daysBefore in EventModel.supportedReminderDays) {
+      if (!selectedDays.contains(daysBefore)) continue;
 
-    final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
+      final reminderDate = DateTime(
+        event.date.year,
+        event.date.month,
+        event.date.day - daysBefore,
+        event.date.hour,
+        event.date.minute,
+      );
+      if (!reminderDate.isAfter(DateTime.now())) continue;
 
-    try {
+      final scheduledDate = tz.TZDateTime.from(reminderDate, tz.local);
+      final deadlineText = DateFormat('dd MMM yyyy, HH:mm').format(event.date);
       await _plugin.zonedSchedule(
-        event.id.hashCode + 5000, // Unique ID for reminder
-        '⏰ Pengingat Event Besok!',
-        '${event.name} akan dilaksanakan besok\n📍 ${event.location}',
+        _reminderNotificationId(event.id, daysBefore),
+        daysBefore == 0
+            ? '⏰ Deadline Hari Ini'
+            : '⏰ Deadline $daysBefore Hari Lagi',
+        '${event.name}\nDeadline: $deadlineText',
         scheduledDate,
         const NotificationDetails(
           android: _reminderChannel,
           iOS: DarwinNotificationDetails(),
         ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'event_reminder:${event.id}',
+        androidScheduleMode: _scheduleMode,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: 'event_deadline:${event.id}:$daysBefore',
       );
 
       if (kDebugMode) {
-        print('[NotificationService] Reminder scheduled for: ${event.name} at $scheduledDate');
+        print(
+          '[NotificationService] Deadline reminder scheduled for: ${event.name} at $scheduledDate',
+        );
       }
-    } catch (e) {
-      if (kDebugMode) print('[NotificationService] Failed to schedule reminder: $e');
     }
   }
 
-  /// Schedule a reminder notification 1 hour before event
+  /// Preserve the existing one-hour event-start notification.
   Future<void> scheduleEventReminderHourBefore(EventModel event) async {
     final reminderTime = event.date.subtract(const Duration(hours: 1));
 
@@ -188,30 +243,54 @@ class NotificationService {
 
     final scheduledDate = tz.TZDateTime.from(reminderTime, tz.local);
 
-    try {
-      await _plugin.zonedSchedule(
-        event.id.hashCode + 6000,
-        '🔔 Event Dimulai 1 Jam Lagi!',
-        '${event.name}\n📍 ${event.location}',
-        scheduledDate,
-        const NotificationDetails(
-          android: _reminderChannel,
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        payload: 'event_reminder_hour:${event.id}',
-      );
-    } catch (e) {
-      if (kDebugMode) print('[NotificationService] Failed to schedule 1h reminder: $e');
-    }
+    await _plugin.zonedSchedule(
+      event.id.hashCode + 6000,
+      '🔔 Event Dimulai 1 Jam Lagi!',
+      '${event.name}\n📍 ${event.location}',
+      scheduledDate,
+      const NotificationDetails(
+        android: _reminderChannel,
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: _scheduleMode,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+      payload: 'event_reminder_hour:${event.id}',
+    );
   }
 
   /// Cancel all reminders for a specific event
   Future<void> cancelEventReminders(String eventId) async {
+    for (final daysBefore in EventModel.supportedReminderDays) {
+      await _plugin.cancel(_reminderNotificationId(eventId, daysBefore));
+    }
+    final pendingNotifications = await _plugin.pendingNotificationRequests();
+    for (final notification in pendingNotifications) {
+      final payload = notification.payload;
+      if (payload == 'event_reminder:$eventId' ||
+          payload == 'event_reminder_hour:$eventId' ||
+          payload?.startsWith('event_deadline:$eventId:') == true) {
+        await _plugin.cancel(notification.id);
+      }
+    }
+    // Cancel reminder IDs created by the previous one-day reminder implementation.
     await _plugin.cancel(eventId.hashCode + 5000);
     await _plugin.cancel(eventId.hashCode + 6000);
   }
+
+  int _reminderNotificationId(String eventId, int daysBefore) {
+    var hash = 0x811c9dc5;
+    for (final codeUnit in eventId.codeUnits) {
+      hash = ((hash ^ codeUnit) * 0x01000193) & 0x7fffffff;
+    }
+    final reminderIndex = EventModel.supportedReminderDays.indexOf(daysBefore);
+    return (hash * EventModel.supportedReminderDays.length + reminderIndex) &
+        0x7fffffff;
+  }
+
+  AndroidScheduleMode get _scheduleMode => _canScheduleExactNotifications
+      ? AndroidScheduleMode.exactAllowWhileIdle
+      : AndroidScheduleMode.inexactAllowWhileIdle;
 
   /// Cancel all notifications
   Future<void> cancelAll() async {

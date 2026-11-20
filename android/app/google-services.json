@@ -1,13 +1,14 @@
 {
   "project_info": {
-    "project_number": "25608873835",
-    "project_id": "eventify-campus-5d081",
-    "storage_bucket": "eventify-campus-5d081.firebasestorage.app"
+    "project_number": "296116940516",
+    "firebase_url": "https://eventify-campus-15122-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "eventify-campus-15122",
+    "storage_bucket": "eventify-campus-15122.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:25608873835:android:cfcd4176714bd7c3910e2e",
+        "mobilesdk_app_id": "1:296116940516:android:a8b889e4cbc0aebf6e46f1",
         "android_client_info": {
           "package_name": "com.example.eventify_campus"
         }
@@ -15,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAx0bjT3BaJx2bdVhf-ticcCtyS-F6rFFw"
+          "current_key": "AIzaSyDdKBlY0OF-JVrYQOuIrgTzWShzc1Yuz5E"
         }
       ],
       "services": {

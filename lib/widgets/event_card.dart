@@ -8,6 +8,7 @@ class EventCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final bool showActions;
 
   const EventCard({
     super.key,
@@ -15,6 +16,7 @@ class EventCard extends StatelessWidget {
     required this.onTap,
     required this.onEdit,
     required this.onDelete,
+    required this.showActions,
   });
 
   IconData _getCategoryIcon(String category) {
@@ -60,12 +62,16 @@ class EventCard extends StatelessWidget {
         color: isDark ? AppTheme.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.04) : Colors.indigo.withOpacity(0.04),
+          color: isDark
+              ? Colors.white.withOpacity(0.04)
+              : Colors.indigo.withOpacity(0.04),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.2) : Colors.indigo.withOpacity(0.04),
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.indigo.withOpacity(0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -80,14 +86,13 @@ class EventCard extends StatelessWidget {
             child: Row(
               children: [
                 // Category Side Highlight Indicator
-                Container(
-                  width: 6,
-                  height: 110,
-                  color: catColor,
-                ),
+                Container(width: 6, height: 110, color: catColor),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -97,11 +102,7 @@ class EventCard extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Icon(
-                                  catIcon,
-                                  size: 14,
-                                  color: catColor,
-                                ),
+                                Icon(catIcon, size: 14, color: catColor),
                                 const SizedBox(width: 4),
                                 Text(
                                   event.category,
@@ -114,11 +115,22 @@ class EventCard extends StatelessWidget {
                               ],
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: isCompleted
-                                    ? (isDark ? Colors.white10 : Colors.black.withOpacity(0.05))
-                                    : (isDark ? AppTheme.successGreen.withOpacity(0.15) : AppTheme.successGreen.withOpacity(0.1)),
+                                    ? (isDark
+                                          ? Colors.white10
+                                          : Colors.black.withOpacity(0.05))
+                                    : (isDark
+                                          ? AppTheme.successGreen.withOpacity(
+                                              0.15,
+                                            )
+                                          : AppTheme.successGreen.withOpacity(
+                                              0.1,
+                                            )),
                                 borderRadius: BorderRadius.circular(30),
                               ),
                               child: Text(
@@ -127,7 +139,9 @@ class EventCard extends StatelessWidget {
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                   color: isCompleted
-                                      ? (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)
+                                      ? (isDark
+                                            ? AppTheme.darkTextSecondary
+                                            : AppTheme.lightTextSecondary)
                                       : AppTheme.successGreen,
                                 ),
                               ),
@@ -141,7 +155,9 @@ class EventCard extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                            color: isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -153,14 +169,18 @@ class EventCard extends StatelessWidget {
                             Icon(
                               Icons.calendar_month_rounded,
                               size: 13,
-                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               dateFormatted,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                color: isDark
+                                    ? AppTheme.darkTextSecondary
+                                    : AppTheme.lightTextSecondary,
                               ),
                             ),
                           ],
@@ -172,7 +192,9 @@ class EventCard extends StatelessWidget {
                             Icon(
                               Icons.location_on_rounded,
                               size: 13,
-                              color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                              color: isDark
+                                  ? AppTheme.darkTextSecondary
+                                  : AppTheme.lightTextSecondary,
                             ),
                             const SizedBox(width: 4),
                             Expanded(
@@ -180,7 +202,9 @@ class EventCard extends StatelessWidget {
                                 event.location,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                                  color: isDark
+                                      ? AppTheme.darkTextSecondary
+                                      : AppTheme.lightTextSecondary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -192,25 +216,33 @@ class EventCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Action Buttons
-                Padding(
-                  padding: const EdgeInsets.only(right: 8.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit_rounded, size: 20, color: AppTheme.primaryIndigo),
-                        onPressed: onEdit,
-                        tooltip: 'Edit Event',
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_rounded, size: 20, color: AppTheme.accentPink),
-                        onPressed: onDelete,
-                        tooltip: 'Hapus Event',
-                      ),
-                    ],
+                if (showActions)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.edit_rounded,
+                            size: 20,
+                            color: AppTheme.primaryIndigo,
+                          ),
+                          onPressed: onEdit,
+                          tooltip: 'Edit Event',
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.delete_rounded,
+                            size: 20,
+                            color: AppTheme.accentPink,
+                          ),
+                          onPressed: onDelete,
+                          tooltip: 'Hapus Event',
+                        ),
+                      ],
+                    ),
                   ),
-                )
               ],
             ),
           ),

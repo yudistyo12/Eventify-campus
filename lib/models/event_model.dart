@@ -7,9 +7,19 @@ class EventModel {
   final DateTime date;
   final String location;
   final String description;
-  final String status; // "Aktif" / "Selesai"
+  final String status; // "Aktif" / "Selesai" (status kegiatan)
   final String category; // "Akademik", "Organisasi", "Lomba", "Seminar"
   final DateTime createdAt;
+  final DateTime? updatedAt;
+  final String createdBy;
+  final bool isPublished;
+  final List<int> reminderDaysBefore;
+
+  // --- Field Admin Approval ---
+  final String approvalStatus; // "pending", "approved", "rejected"
+  final String? reviewedBy; // UID admin yang memeriksa
+  final DateTime? reviewedAt; // Waktu pemeriksaan
+  final String? rejectionReason; // Alasan penolakan
 
   EventModel({
     required this.id,
@@ -21,26 +31,72 @@ class EventModel {
     required this.status,
     required this.category,
     required this.createdAt,
+    this.updatedAt,
+    this.createdBy = '',
+    this.isPublished = true,
+    this.reminderDaysBefore = const [1],
+    this.approvalStatus = 'approved',
+    this.reviewedBy,
+    this.reviewedAt,
+    this.rejectionReason,
   });
 
-  // Convert to Map for Firestore/Local database
+  static const supportedReminderDays = [7, 3, 1, 0];
+
+  /// Approval status constants
+  static const String statusPending = 'pending';
+  static const String statusApproved = 'approved';
+  static const String statusRejected = 'rejected';
+
+  bool get isPending => approvalStatus == statusPending;
+  bool get isApproved => approvalStatus == statusApproved;
+  bool get isRejected => approvalStatus == statusRejected;
+
+  static List<int> _parseReminderDays(dynamic value) {
+    if (value is! List) return [1];
+    return value
+        .whereType<num>()
+        .map((day) => day.toInt())
+        .where(supportedReminderDays.contains)
+        .toSet()
+        .toList();
+  }
+
+  // Convert to Map for Firestore
   Map<String, dynamic> toMap() {
-    return {
+    final map = <String, dynamic>{
       'id': id,
       'name': name,
       'pic': pic,
-      'date': Timestamp.fromDate(date), // Firestore Timestamp compatibility
+      'date': Timestamp.fromDate(date),
       'location': location,
       'description': description,
       'status': status,
       'category': category,
       'createdAt': Timestamp.fromDate(createdAt),
+      'createdBy': createdBy,
+      'isPublished': isPublished,
+      'reminderDaysBefore': reminderDaysBefore,
+      'approvalStatus': approvalStatus,
     };
+    if (updatedAt != null) {
+      map['updatedAt'] = Timestamp.fromDate(updatedAt!);
+    }
+    if (reviewedBy != null) {
+      map['reviewedBy'] = reviewedBy;
+    }
+    if (reviewedAt != null) {
+      map['reviewedAt'] = Timestamp.fromDate(reviewedAt!);
+    }
+    if (rejectionReason != null) {
+      map['rejectionReason'] = rejectionReason;
+    }
+    return map;
   }
 
-  // Convert to Map for local SQLite/SharedPreferences which cannot store Timestamp objects
+  // Convert to Map for local storage (JSON-safe, no Timestamp)
   Map<String, dynamic> toJson() {
-    return {
+    final json = <String, dynamic>{
       'id': id,
       'name': name,
       'pic': pic,
@@ -50,7 +106,24 @@ class EventModel {
       'status': status,
       'category': category,
       'createdAt': createdAt.toIso8601String(),
+      'createdBy': createdBy,
+      'isPublished': isPublished,
+      'reminderDaysBefore': reminderDaysBefore,
+      'approvalStatus': approvalStatus,
     };
+    if (updatedAt != null) {
+      json['updatedAt'] = updatedAt!.toIso8601String();
+    }
+    if (reviewedBy != null) {
+      json['reviewedBy'] = reviewedBy;
+    }
+    if (reviewedAt != null) {
+      json['reviewedAt'] = reviewedAt!.toIso8601String();
+    }
+    if (rejectionReason != null) {
+      json['rejectionReason'] = rejectionReason;
+    }
+    return json;
   }
 
   // Create EventModel from Firestore Document Snapshot
@@ -71,6 +144,18 @@ class EventModel {
       status: map['status'] ?? 'Aktif',
       category: map['category'] ?? 'Organisasi',
       createdAt: parseDate(map['createdAt']),
+      updatedAt: map['updatedAt'] == null ? null : parseDate(map['updatedAt']),
+      createdBy: map['createdBy'] is String ? map['createdBy'] as String : '',
+      isPublished: map['isPublished'] is bool
+          ? map['isPublished'] as bool
+          : true,
+      reminderDaysBefore: _parseReminderDays(map['reminderDaysBefore']),
+      // Backward compatible: event lama tanpa approvalStatus dianggap approved
+      approvalStatus: map['approvalStatus'] ?? 'approved',
+      reviewedBy: map['reviewedBy'] as String?,
+      reviewedAt:
+          map['reviewedAt'] == null ? null : parseDate(map['reviewedAt']),
+      rejectionReason: map['rejectionReason'] as String?,
     );
   }
 
@@ -80,12 +165,30 @@ class EventModel {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       pic: json['pic'] ?? '',
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      date: json['date'] != null
+          ? DateTime.parse(json['date'])
+          : DateTime.now(),
       location: json['location'] ?? '',
       description: json['description'] ?? '',
       status: json['status'] ?? 'Aktif',
       category: json['category'] ?? 'Organisasi',
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
+      createdAt: json['createdAt'] != null
+          ? DateTime.parse(json['createdAt'])
+          : DateTime.now(),
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
+          : null,
+      createdBy: json['createdBy'] is String ? json['createdBy'] as String : '',
+      isPublished: json['isPublished'] is bool
+          ? json['isPublished'] as bool
+          : true,
+      reminderDaysBefore: _parseReminderDays(json['reminderDaysBefore']),
+      approvalStatus: json['approvalStatus'] ?? 'approved',
+      reviewedBy: json['reviewedBy'] as String?,
+      reviewedAt: json['reviewedAt'] != null
+          ? DateTime.parse(json['reviewedAt'])
+          : null,
+      rejectionReason: json['rejectionReason'] as String?,
     );
   }
 
@@ -100,6 +203,14 @@ class EventModel {
     String? status,
     String? category,
     DateTime? createdAt,
+    DateTime? updatedAt,
+    String? createdBy,
+    bool? isPublished,
+    List<int>? reminderDaysBefore,
+    String? approvalStatus,
+    String? reviewedBy,
+    DateTime? reviewedAt,
+    String? rejectionReason,
   }) {
     return EventModel(
       id: id ?? this.id,
@@ -111,6 +222,14 @@ class EventModel {
       status: status ?? this.status,
       category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      isPublished: isPublished ?? this.isPublished,
+      reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      reviewedBy: reviewedBy ?? this.reviewedBy,
+      reviewedAt: reviewedAt ?? this.reviewedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
     );
   }
 }

@@ -73,12 +73,10 @@ class AppTheme {
         primary: primaryIndigo,
         secondary: secondaryIndigo,
         surface: lightCard,
-        background: lightBg,
         error: accentPink,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: lightTextPrimary,
-        onBackground: lightTextPrimary,
       ),
       textTheme: GoogleFonts.outfitTextTheme().copyWith(
         displayLarge: GoogleFonts.outfit(
@@ -139,12 +137,10 @@ class AppTheme {
         primary: primaryIndigo,
         secondary: secondaryIndigo,
         surface: darkCard,
-        background: darkBg,
         error: accentPink,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: darkTextPrimary,
-        onBackground: darkTextPrimary,
       ),
       textTheme: GoogleFonts.outfitTextTheme().copyWith(
         displayLarge: GoogleFonts.outfit(

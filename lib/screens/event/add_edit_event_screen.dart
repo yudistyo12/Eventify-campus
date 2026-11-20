@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../../models/event_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 import '../dashboard/dashboard_layout.dart';
+import '../login_screen.dart';
 
 class AddEditEventScreen extends StatefulWidget {
   final EventModel? event; // Null if Adding, non-null if Editing
@@ -19,23 +21,24 @@ class AddEditEventScreen extends StatefulWidget {
 
 class _AddEditEventScreenState extends State<AddEditEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   late bool _isEditMode;
-  
+
   final _nameController = TextEditingController();
   final _picController = TextEditingController();
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   String _selectedStatus = 'Aktif';
   String _selectedCategory = 'Organisasi';
+  final Set<int> _selectedReminderDays = {1};
 
   @override
   void initState() {
     super.initState();
     _isEditMode = widget.event != null;
-    
+
     if (_isEditMode) {
       final e = widget.event!;
       _nameController.text = e.name;
@@ -45,6 +48,9 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
       _selectedDate = e.date;
       _selectedStatus = e.status;
       _selectedCategory = e.category;
+      _selectedReminderDays
+        ..clear()
+        ..addAll(e.reminderDaysBefore);
     }
   }
 
@@ -82,7 +88,7 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
     if (!mounted) return;
 
     final TimeOfDay? pickedTime = await showTimeOfDayPicker();
-    
+
     if (pickedTime == null) {
       setState(() {
         _selectedDate = DateTime(
@@ -131,7 +137,10 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
       SnackBar(
         content: Text(
           message,
-          style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: isError ? AppTheme.accentPink : AppTheme.successGreen,
         behavior: SnackBarBehavior.floating,
@@ -146,9 +155,10 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
     final appState = Provider.of<AppState>(context, listen: false);
 
     try {
+      late final bool notificationFailed;
       if (_isEditMode) {
         // UPDATE CRUD
-        await appState.updateEvent(
+        notificationFailed = await appState.updateEvent(
           id: widget.event!.id,
           name: _nameController.text.trim(),
           pic: _picController.text.trim(),
@@ -158,11 +168,11 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
           status: _selectedStatus,
           category: _selectedCategory,
           createdAt: widget.event!.createdAt,
+          reminderDaysBefore: _selectedReminderDays.toList(),
         );
-        _showSnackbar('Event berhasil diperbarui!', isError: false);
       } else {
         // CREATE CRUD
-        await appState.addEvent(
+        notificationFailed = await appState.addEvent(
           name: _nameController.text.trim(),
           pic: _picController.text.trim(),
           date: _selectedDate,
@@ -170,11 +180,19 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
           description: _descriptionController.text.trim(),
           status: _selectedStatus,
           category: _selectedCategory,
+          reminderDaysBefore: _selectedReminderDays.toList(),
         );
-        _showSnackbar('Event baru berhasil ditambahkan!', isError: false);
       }
 
       if (!mounted) return;
+      _showSnackbar(
+        notificationFailed
+            ? 'Event berhasil disimpan, tetapi sebagian notifikasi gagal dijadwalkan.'
+            : _isEditMode
+            ? 'Event berhasil diperbarui!'
+            : 'Event baru berhasil ditambahkan!',
+        isError: notificationFailed,
+      );
 
       // Handle redirect depending on how this screen was opened
       if (Navigator.canPop(context)) {
@@ -191,25 +209,53 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
           _selectedDate = DateTime.now().add(const Duration(days: 1));
           _selectedStatus = 'Aktif';
           _selectedCategory = 'Organisasi';
+          _selectedReminderDays
+            ..clear()
+            ..add(1);
         });
 
         // Switch bottom tab index to Daftar Event (index 1)
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const DashboardLayout(initialTab: 1)),
+          MaterialPageRoute(
+            builder: (context) => const DashboardLayout(initialTab: 1),
+          ),
           (route) => false,
         );
       }
     } catch (e) {
       if (!mounted) return;
-      _showSnackbar('Gagal menyimpan event: ${e.toString()}');
+      final message = e is FirebaseException
+          ? 'Firebase (${e.code}): ${e.message ?? 'Tidak dapat menyimpan data.'}'
+          : e.toString();
+      _showSnackbar('Gagal menyimpan event: $message');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    if (!appState.isAuthenticated) {
+      return _buildLoginRequired(context);
+    }
+    if (_isEditMode && !appState.canManageEvent(widget.event!)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Akses Ditolak')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Hanya pemilik event yang dapat mengedit kegiatan ini.',
+            ),
+          ),
+        ),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final dateFormatted = DateFormat('EEEE, dd MMMM yyyy - HH:mm').format(_selectedDate);
+    final dateFormatted = DateFormat(
+      'EEEE, dd MMMM yyyy - HH:mm',
+    ).format(_selectedDate);
     final categories = ['Akademik', 'Organisasi', 'Lomba', 'Seminar'];
     final statuses = ['Aktif', 'Selesai'];
 
@@ -225,12 +271,12 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: _isEditMode 
+                color: _isEditMode
                     ? AppTheme.primaryIndigo.withOpacity(0.08)
                     : AppTheme.successGreen.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: _isEditMode 
+                  color: _isEditMode
                       ? AppTheme.primaryIndigo.withOpacity(0.2)
                       : AppTheme.successGreen.withOpacity(0.2),
                 ),
@@ -238,20 +284,26 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
               child: Row(
                 children: [
                   Icon(
-                    _isEditMode ? Icons.edit_note_rounded : Icons.add_circle_outline_rounded,
-                    color: _isEditMode ? AppTheme.primaryIndigo : AppTheme.successGreen,
+                    _isEditMode
+                        ? Icons.edit_note_rounded
+                        : Icons.add_circle_outline_rounded,
+                    color: _isEditMode
+                        ? AppTheme.primaryIndigo
+                        : AppTheme.successGreen,
                     size: 24,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      _isEditMode 
+                      _isEditMode
                           ? 'Perbarui formulir di bawah ini untuk mengubah data kegiatan kampus.'
                           : 'Lengkapi formulir untuk mempublikasikan event atau kegiatan baru.',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: _isEditMode ? AppTheme.primaryIndigo : AppTheme.successGreen,
+                        color: _isEditMode
+                            ? AppTheme.primaryIndigo
+                            : AppTheme.successGreen,
                       ),
                     ),
                   ),
@@ -293,10 +345,14 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
               margin: const EdgeInsets.only(bottom: 18),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkCard.withOpacity(0.4) : Colors.white,
+                color: isDark
+                    ? AppTheme.darkCard.withOpacity(0.4)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.04) : Colors.indigo.withOpacity(0.03),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.04)
+                      : Colors.indigo.withOpacity(0.03),
                   width: 1.5,
                 ),
               ),
@@ -307,7 +363,9 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
                     'Tanggal & Waktu Event',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -320,17 +378,121 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                            color: isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary,
                           ),
                         ),
                       ),
                       IconButton(
                         onPressed: _pickDate,
-                        icon: const Icon(Icons.date_range_rounded, color: AppTheme.primaryIndigo),
+                        icon: const Icon(
+                          Icons.date_range_rounded,
+                          color: AppTheme.primaryIndigo,
+                        ),
                         tooltip: 'Pilih Tanggal',
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+
+            // Deadline reminders
+            Container(
+              margin: const EdgeInsets.only(bottom: 18),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppTheme.darkCard.withValues(alpha: 0.4)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.04)
+                      : Colors.indigo.withValues(alpha: 0.03),
+                  width: 1.5,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.notifications_active_rounded,
+                        color: AppTheme.primaryIndigo,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Pengingat Deadline',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? AppTheme.darkTextPrimary
+                                : AppTheme.lightTextPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Pilih satu atau beberapa waktu pengingat.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final reminder in const [
+                        (days: 7, label: '7 hari sebelumnya'),
+                        (days: 3, label: '3 hari sebelumnya'),
+                        (days: 1, label: '1 hari sebelumnya'),
+                        (days: 0, label: 'Hari deadline'),
+                      ])
+                        FilterChip(
+                          label: Text(reminder.label),
+                          selected: _selectedReminderDays.contains(
+                            reminder.days,
+                          ),
+                          selectedColor: AppTheme.primaryIndigo.withValues(
+                            alpha: 0.15,
+                          ),
+                          checkmarkColor: AppTheme.primaryIndigo,
+                          onSelected: (selected) {
+                            setState(() {
+                              if (selected) {
+                                _selectedReminderDays.add(reminder.days);
+                              } else {
+                                _selectedReminderDays.remove(reminder.days);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  if (_selectedReminderDays.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Pengingat dikirim pada pukul ${DateFormat('HH:mm').format(_selectedDate)}.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? AppTheme.darkTextSecondary
+                            : AppTheme.lightTextSecondary,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -354,24 +516,34 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
               margin: const EdgeInsets.only(bottom: 18),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkCard.withOpacity(0.4) : Colors.white,
+                color: isDark
+                    ? AppTheme.darkCard.withOpacity(0.4)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.04) : Colors.indigo.withOpacity(0.03),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.04)
+                      : Colors.indigo.withOpacity(0.03),
                   width: 1.5,
                 ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedCategory,
+                  initialValue: _selectedCategory,
                   decoration: InputDecoration(
                     labelText: 'Kategori Event',
                     labelStyle: TextStyle(
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                       fontSize: 12,
                     ),
                     border: InputBorder.none,
-                    prefixIcon: const Icon(Icons.category_rounded, color: AppTheme.primaryIndigo, size: 22),
+                    prefixIcon: const Icon(
+                      Icons.category_rounded,
+                      color: AppTheme.primaryIndigo,
+                      size: 22,
+                    ),
                   ),
                   dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
                   items: categories.map((cat) {
@@ -396,24 +568,34 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
               margin: const EdgeInsets.only(bottom: 18),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               decoration: BoxDecoration(
-                color: isDark ? AppTheme.darkCard.withOpacity(0.4) : Colors.white,
+                color: isDark
+                    ? AppTheme.darkCard.withOpacity(0.4)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isDark ? Colors.white.withOpacity(0.04) : Colors.indigo.withOpacity(0.03),
+                  color: isDark
+                      ? Colors.white.withOpacity(0.04)
+                      : Colors.indigo.withOpacity(0.03),
                   width: 1.5,
                 ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButtonFormField<String>(
-                  value: _selectedStatus,
+                  initialValue: _selectedStatus,
                   decoration: InputDecoration(
                     labelText: 'Status Event',
                     labelStyle: TextStyle(
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                       fontSize: 12,
                     ),
                     border: InputBorder.none,
-                    prefixIcon: const Icon(Icons.check_circle_rounded, color: AppTheme.primaryIndigo, size: 22),
+                    prefixIcon: const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppTheme.primaryIndigo,
+                      size: 22,
+                    ),
                   ),
                   dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
                   items: statuses.map((status) {
@@ -480,11 +662,52 @@ class _AddEditEventScreenState extends State<AddEditEventScreen> {
     }
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Tambah Event Baru'), centerTitle: true),
+      body: body,
+    );
+  }
+
+  Widget _buildLoginRequired(BuildContext context) {
+    final isEditing = _isEditMode;
+    return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Event Baru'),
+        title: Text(isEditing ? 'Akses Event' : 'Login Diperlukan'),
         centerTitle: true,
       ),
-      body: body,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.lock_outline_rounded,
+                size: 52,
+                color: AppTheme.primaryIndigo,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                isEditing
+                    ? 'Login dan menjadi pemilik event untuk mengeditnya.'
+                    : 'Login terlebih dahulu untuk menambahkan dan mempublikasikan event.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              CustomButton(
+                text: 'Login',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

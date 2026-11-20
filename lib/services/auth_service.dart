@@ -9,23 +9,26 @@ class AuthService {
 
   // Stream of user auth state
   Stream<User?> get firebaseUserStream => _firebaseAuth.authStateChanges();
+  bool get hasCurrentUser => _firebaseAuth.currentUser != null;
+  String? get currentUid => _firebaseAuth.currentUser?.uid;
 
-  // Login
+  // Login (User Biasa)
   Future<UserModel> login({
     required String email,
     required String password,
   }) async {
-    final UserCredential credential = await _firebaseAuth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final UserCredential credential = await _firebaseAuth
+        .signInWithEmailAndPassword(email: email, password: password);
 
     if (credential.user == null) {
       throw Exception("User tidak ditemukan");
     }
 
     // Fetch additional profile from Firestore
-    final userDoc = await _firestore.collection('users').doc(credential.user!.uid).get();
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(credential.user!.uid)
+        .get();
     UserModel user;
 
     if (userDoc.exists && userDoc.data() != null) {
@@ -46,6 +49,59 @@ class AuthService {
     return user;
   }
 
+  // Login Admin — verifikasi role admin di Firestore
+  Future<UserModel> adminLogin({
+    required String email,
+    required String password,
+  }) async {
+    final UserCredential credential = await _firebaseAuth
+        .signInWithEmailAndPassword(email: email, password: password);
+
+    if (credential.user == null) {
+      throw Exception("User tidak ditemukan");
+    }
+
+    // Wajib cek role admin dari Firestore
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(credential.user!.uid)
+        .get();
+
+    if (!userDoc.exists || userDoc.data() == null) {
+      // Logout karena bukan akun admin yang terdaftar
+      await _firebaseAuth.signOut();
+      throw Exception("Akun tidak terdaftar sebagai admin");
+    }
+
+    final user = UserModel.fromMap(userDoc.data()!, credential.user!.uid);
+
+    if (!user.isAdmin) {
+      // Logout karena bukan admin
+      await _firebaseAuth.signOut();
+      throw Exception("Akun ini tidak memiliki hak akses admin");
+    }
+
+    return user;
+  }
+
+  // Cek apakah user saat ini adalah admin
+  Future<bool> isCurrentUserAdmin() async {
+    final currentUser = _firebaseAuth.currentUser;
+    if (currentUser == null) return false;
+
+    try {
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+      if (userDoc.exists && userDoc.data() != null) {
+        return userDoc.data()!['role'] == 'admin';
+      }
+    } catch (_) {}
+
+    return false;
+  }
+
   // Register
   Future<UserModel> register({
     required String name,
@@ -54,10 +110,8 @@ class AuthService {
     required String nim,
     required String major,
   }) async {
-    final UserCredential credential = await _firebaseAuth.createUserWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
+    final UserCredential credential = await _firebaseAuth
+        .createUserWithEmailAndPassword(email: email, password: password);
 
     if (credential.user == null) {
       throw Exception("Gagal melakukan registrasi");
@@ -69,6 +123,7 @@ class AuthService {
       email: email,
       nim: nim,
       major: major,
+      role: 'user', // User baru selalu role 'user'
     );
 
     // Save user profile to Firestore
@@ -86,7 +141,10 @@ class AuthService {
     if (currentUser == null) return null;
 
     try {
-      final userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+      final userDoc = await _firestore
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
       if (userDoc.exists && userDoc.data() != null) {
         return UserModel.fromMap(userDoc.data()!, currentUser.uid);
       }
@@ -102,7 +160,8 @@ class AuthService {
 
     return UserModel(
       uid: currentUser.uid,
-      name: currentUser.displayName ?? currentUser.email?.split('@')[0] ?? 'User',
+      name:
+          currentUser.displayName ?? currentUser.email?.split('@')[0] ?? 'User',
       email: currentUser.email ?? '',
       nim: 'N/A',
       major: 'N/A',
@@ -111,7 +170,7 @@ class AuthService {
 
   // Sign Out
   Future<void> logout() async {
-    await DatabaseHelper.clearLocalUser();
     await _firebaseAuth.signOut();
+    await DatabaseHelper.clearLocalData();
   }
 }

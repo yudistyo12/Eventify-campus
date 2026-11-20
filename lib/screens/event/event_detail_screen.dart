@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../models/event_model.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import 'add_edit_event_screen.dart';
 
@@ -39,10 +41,13 @@ class EventDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canManageEvent = context.select<AppState, bool>(
+      (appState) => appState.canManageEvent(event),
+    );
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final catColor = _getCategoryColor(event.category);
     final catIcon = _getCategoryIcon(event.category);
-    
+
     final dayFormatted = DateFormat('EEEE').format(event.date);
     final dateFormatted = DateFormat('dd MMMM yyyy').format(event.date);
     final timeFormatted = DateFormat('HH:mm').format(event.date);
@@ -65,35 +70,44 @@ class EventDetailScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: Colors.black.withOpacity(0.4),
                 ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: Colors.white),
+                child: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: Colors.white,
+                ),
               ),
               onPressed: () => Navigator.pop(context),
             ),
             actions: [
-              IconButton(
-                icon: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.4),
-                  ),
-                  child: const Icon(Icons.edit_rounded, size: 18, color: Colors.white),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddEditEventScreen(event: event),
+              if (canManageEvent)
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black.withOpacity(0.4),
                     ),
-                  );
-                },
-              ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddEditEventScreen(event: event),
+                      ),
+                    );
+                  },
+                ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                  colors: [catColor.withOpacity(0.8), catColor],
+                    colors: [catColor.withOpacity(0.8), catColor],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -120,15 +134,14 @@ class EventDetailScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                             color: Colors.white.withValues(alpha: 0.2),
                           ),
-                          child: Icon(
-                            catIcon,
-                            size: 48,
-                            color: Colors.white,
-                          ),
+                          child: Icon(catIcon, size: 48, color: Colors.white),
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(30),
@@ -164,16 +177,23 @@ class EventDetailScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
                             color: isCompleted
-                                ? (isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05))
+                                ? (isDark
+                                      ? Colors.white10
+                                      : Colors.black.withValues(alpha: 0.05))
                                 : AppTheme.successGreen.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isCompleted
                                   ? Colors.transparent
-                                  : AppTheme.successGreen.withValues(alpha: 0.2),
+                                  : AppTheme.successGreen.withValues(
+                                      alpha: 0.2,
+                                    ),
                             ),
                           ),
                           child: Text(
@@ -182,7 +202,9 @@ class EventDetailScreen extends StatelessWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: isCompleted
-                                  ? (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary)
+                                  ? (isDark
+                                        ? AppTheme.darkTextSecondary
+                                        : AppTheme.lightTextSecondary)
                                   : AppTheme.successGreen,
                             ),
                           ),
@@ -191,20 +213,24 @@ class EventDetailScreen extends StatelessWidget {
                           'Dibuat: ${DateFormat('dd MMM yy').format(event.createdAt)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                            color: isDark
+                                ? AppTheme.darkTextSecondary
+                                : AppTheme.lightTextSecondary,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // Event Title
                     Text(
                       event.name,
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -237,7 +263,7 @@ class EventDetailScreen extends StatelessWidget {
                       title: 'Penanggung Jawab (PIC)',
                       subtitle: event.pic,
                     ),
-                    
+
                     const SizedBox(height: 28),
                     const Divider(height: 1),
                     const SizedBox(height: 28),
@@ -248,7 +274,9 @@ class EventDetailScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                        color: isDark
+                            ? AppTheme.darkTextPrimary
+                            : AppTheme.lightTextPrimary,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -256,10 +284,14 @@ class EventDetailScreen extends StatelessWidget {
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
-                        color: isDark ? AppTheme.darkCard : Colors.indigo.withValues(alpha: 0.03),
+                        color: isDark
+                            ? AppTheme.darkCard
+                            : Colors.indigo.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isDark ? Colors.white.withValues(alpha: 0.04) : Colors.indigo.withValues(alpha: 0.05),
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.04)
+                              : Colors.indigo.withValues(alpha: 0.05),
                         ),
                       ),
                       child: Text(
@@ -267,7 +299,9 @@ class EventDetailScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.6,
-                          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                          color: isDark
+                              ? AppTheme.darkTextPrimary
+                              : AppTheme.lightTextPrimary,
                         ),
                       ),
                     ),
@@ -291,7 +325,7 @@ class EventDetailScreen extends StatelessWidget {
     String? trailing,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -301,11 +335,7 @@ class EventDetailScreen extends StatelessWidget {
             color: iconColor.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: iconColor,
-            size: 20,
-          ),
+          child: Icon(icon, color: iconColor, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -317,7 +347,9 @@ class EventDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                  color: isDark
+                      ? AppTheme.darkTextSecondary
+                      : AppTheme.lightTextSecondary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -326,7 +358,9 @@ class EventDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                  color: isDark
+                      ? AppTheme.darkTextPrimary
+                      : AppTheme.lightTextPrimary,
                 ),
               ),
             ],
@@ -336,7 +370,9 @@ class EventDetailScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.04),
+              color: isDark
+                  ? Colors.white10
+                  : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
@@ -344,7 +380,9 @@ class EventDetailScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                color: isDark
+                    ? AppTheme.darkTextPrimary
+                    : AppTheme.lightTextPrimary,
               ),
             ),
           ),

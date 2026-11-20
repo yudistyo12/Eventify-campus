@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../event/add_edit_event_screen.dart';
 import 'home_tab.dart';
@@ -32,6 +34,9 @@ class _DashboardLayoutState extends State<DashboardLayout> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isAuthenticated = context.select<AppState, bool>(
+      (appState) => appState.isAuthenticated,
+    );
 
     // Define tabs list
     final List<Widget> tabs = [
@@ -43,15 +48,14 @@ class _DashboardLayoutState extends State<DashboardLayout> {
     ];
 
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: tabs,
-      ),
+      body: IndexedStack(index: _currentIndex, children: tabs),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black.withValues(alpha: 0.4) : Colors.indigo.withValues(alpha: 0.06),
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.4)
+                  : Colors.indigo.withValues(alpha: 0.06),
               blurRadius: 20,
               offset: const Offset(0, -4),
             ),
@@ -68,36 +72,66 @@ class _DashboardLayoutState extends State<DashboardLayout> {
           destinations: [
             NavigationDestination(
               icon: Icon(
-                _currentIndex == 0 ? Icons.grid_view_rounded : Icons.grid_view_outlined,
-                color: _currentIndex == 0 ? AppTheme.primaryIndigo : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                _currentIndex == 0
+                    ? Icons.grid_view_rounded
+                    : Icons.grid_view_outlined,
+                color: _currentIndex == 0
+                    ? AppTheme.primaryIndigo
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
               ),
               label: 'Home',
             ),
             NavigationDestination(
               icon: Icon(
-                _currentIndex == 1 ? Icons.event_note_rounded : Icons.event_note_outlined,
-                color: _currentIndex == 1 ? AppTheme.primaryIndigo : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                _currentIndex == 1
+                    ? Icons.event_note_rounded
+                    : Icons.event_note_outlined,
+                color: _currentIndex == 1
+                    ? AppTheme.primaryIndigo
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
               ),
               label: 'Daftar Event',
             ),
             NavigationDestination(
               icon: Icon(
-                _currentIndex == 2 ? Icons.add_box_rounded : Icons.add_box_outlined,
-                color: _currentIndex == 2 ? AppTheme.primaryIndigo : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                _currentIndex == 2
+                    ? Icons.add_box_rounded
+                    : Icons.add_box_outlined,
+                color: _currentIndex == 2
+                    ? AppTheme.primaryIndigo
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
               ),
               label: 'Tambah Event',
             ),
             NavigationDestination(
               icon: Icon(
-                _currentIndex == 3 ? Icons.bar_chart_rounded : Icons.bar_chart_outlined,
-                color: _currentIndex == 3 ? AppTheme.primaryIndigo : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                _currentIndex == 3
+                    ? Icons.bar_chart_rounded
+                    : Icons.bar_chart_outlined,
+                color: _currentIndex == 3
+                    ? AppTheme.primaryIndigo
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
               ),
               label: 'Statistik',
             ),
             NavigationDestination(
               icon: Icon(
-                _currentIndex == 4 ? Icons.account_circle_rounded : Icons.account_circle_outlined,
-                color: _currentIndex == 4 ? AppTheme.primaryIndigo : (isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary),
+                _currentIndex == 4
+                    ? Icons.account_circle_rounded
+                    : Icons.account_circle_outlined,
+                color: _currentIndex == 4
+                    ? AppTheme.primaryIndigo
+                    : (isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary),
               ),
               label: 'Profile',
             ),
@@ -105,7 +139,8 @@ class _DashboardLayoutState extends State<DashboardLayout> {
         ),
       ),
       // Floating action button on home page is only visible when not on add/profile tab
-      floatingActionButton: _currentIndex == 0 || _currentIndex == 1
+      floatingActionButton:
+          isAuthenticated && (_currentIndex == 0 || _currentIndex == 1)
           ? FloatingActionButton(
               onPressed: () {
                 // Route to index 2 (Tambah Event tab)

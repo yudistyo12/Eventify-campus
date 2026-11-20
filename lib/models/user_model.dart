@@ -4,6 +4,7 @@ class UserModel {
   final String email;
   final String nim; // Student ID
   final String major; // Major/Department
+  final String role; // 'user' atau 'admin'
 
   UserModel({
     required this.uid,
@@ -11,7 +12,10 @@ class UserModel {
     required this.email,
     required this.nim,
     required this.major,
+    this.role = 'user',
   });
+
+  bool get isAdmin => role == 'admin';
 
   Map<String, dynamic> toMap() {
     return {
@@ -20,6 +24,7 @@ class UserModel {
       'email': email,
       'nim': nim,
       'major': major,
+      'role': role,
     };
   }
 
@@ -30,6 +35,7 @@ class UserModel {
       email: map['email'] ?? '',
       nim: map['nim'] ?? '',
       major: map['major'] ?? '',
+      role: map['role'] ?? 'user',
     );
   }
 
@@ -39,6 +45,7 @@ class UserModel {
     String? email,
     String? nim,
     String? major,
+    String? role,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -46,6 +53,7 @@ class UserModel {
       email: email ?? this.email,
       nim: nim ?? this.nim,
       major: major ?? this.major,
+      role: role ?? this.role,
     );
   }
 }
