@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/event_model.dart';
 import '../../providers/admin_state.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/event_image.dart';
 
 class AdminEventDetailScreen extends StatelessWidget {
   const AdminEventDetailScreen({super.key, required this.event});
@@ -130,6 +131,31 @@ class AdminEventDetailScreen extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            if (event.imageUrl?.isNotEmpty == true) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: SizedBox(
+                  height: 190,
+                  width: double.infinity,
+                  child: EventImage(
+                    imageUrl: event.imageUrl,
+                    fallback: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(

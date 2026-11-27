@@ -3,6 +3,7 @@ import '../theme/app_theme.dart';
 
 class CustomTextField extends StatefulWidget {
   final TextEditingController controller;
+  final FocusNode? focusNode;
   final String labelText;
   final String hintText;
   final IconData prefixIcon;
@@ -14,6 +15,7 @@ class CustomTextField extends StatefulWidget {
   const CustomTextField({
     super.key,
     required this.controller,
+    this.focusNode,
     required this.labelText,
     required this.hintText,
     required this.prefixIcon,
@@ -32,8 +34,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
@@ -41,7 +45,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.1) : Colors.indigo.withOpacity(0.02),
+            color: isDark
+                ? Colors.black.withOpacity(0.1)
+                : Colors.indigo.withOpacity(0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -49,24 +55,26 @@ class _CustomTextFieldState extends State<CustomTextField> {
       ),
       child: TextFormField(
         controller: widget.controller,
+        focusNode: widget.focusNode,
         obscureText: widget.isPassword ? _obscureText : false,
         validator: widget.validator,
         keyboardType: widget.keyboardType,
         maxLines: widget.maxLines,
-        style: TextStyle(
-          fontSize: 15,
-          color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
-        ),
+        style: TextStyle(fontSize: 15, color: scheme.onSurface),
         decoration: InputDecoration(
           labelText: widget.labelText,
           hintText: widget.hintText,
           alignLabelWithHint: widget.maxLines > 1,
           hintStyle: TextStyle(
-            color: isDark ? Colors.white38 : Colors.black38,
+            color: isDark
+                ? scheme.onSurfaceVariant.withValues(alpha: 0.9)
+                : Colors.black38,
             fontSize: 14,
           ),
           labelStyle: TextStyle(
-            color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+            color: isDark
+                ? scheme.onSurfaceVariant
+                : AppTheme.lightTextSecondary,
             fontSize: 14,
           ),
           prefixIcon: Icon(
@@ -78,7 +86,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
               ? IconButton(
                   icon: Icon(
                     _obscureText ? Icons.visibility_off : Icons.visibility,
-                    color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                    color: isDark
+                        ? scheme.onSurfaceVariant
+                        : AppTheme.lightTextSecondary,
                     size: 20,
                   ),
                   onPressed: () {
@@ -88,7 +98,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   },
                 )
               : null,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
@@ -96,14 +109,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(
-              color: isDark ? Colors.white.withOpacity(0.04) : Colors.indigo.withOpacity(0.03),
+              color: isDark
+                  ? Colors.white.withOpacity(0.04)
+                  : Colors.indigo.withOpacity(0.03),
               width: 1.5,
             ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(
-              color: AppTheme.primaryIndigo,
+            borderSide: BorderSide(
+              color: isDark ? AppTheme.secondaryIndigo : AppTheme.primaryIndigo,
               width: 1.5,
             ),
           ),

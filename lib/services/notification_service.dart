@@ -17,10 +17,11 @@ class NotificationService {
 
   bool _isInitialized = false;
   bool _canScheduleExactNotifications = false;
+  bool get _canUsePlugin => !kIsWeb && _isInitialized;
 
   /// Initialize notification service — call once in main.dart
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (kIsWeb || _isInitialized) return;
 
     // Initialize timezone data for scheduled notifications
     tz_data.initializeTimeZones();
@@ -124,6 +125,7 @@ class NotificationService {
 
   /// Show notification when a new event is created
   Future<void> showEventCreatedNotification(EventModel event) async {
+    if (!_canUsePlugin) return;
     await _plugin.show(
       event.id.hashCode,
       '✅ Event Baru Ditambahkan',
@@ -138,6 +140,7 @@ class NotificationService {
 
   /// Show notification when an event is updated
   Future<void> showEventUpdatedNotification(EventModel event) async {
+    if (!_canUsePlugin) return;
     await _plugin.show(
       event.id.hashCode + 1000,
       '✏️ Event Diperbarui',
@@ -152,6 +155,7 @@ class NotificationService {
 
   /// Show notification when an event is deleted
   Future<void> showEventDeletedNotification(String eventName) async {
+    if (!_canUsePlugin) return;
     await _plugin.show(
       eventName.hashCode + 2000,
       '🗑️ Event Dihapus',
@@ -166,6 +170,7 @@ class NotificationService {
 
   /// Show FCM notifications while the app is in the foreground.
   Future<void> showRemoteMessage(RemoteMessage message) async {
+    if (!_canUsePlugin) return;
     final notification = message.notification;
     if (notification == null) return;
 
@@ -192,6 +197,7 @@ class NotificationService {
 
   /// Replace the configurable deadline reminders for an event.
   Future<void> scheduleEventReminders(EventModel event) async {
+    if (!_canUsePlugin) return;
     await cancelEventReminders(event.id);
     if (event.status != 'Aktif') return;
 
@@ -237,6 +243,7 @@ class NotificationService {
 
   /// Preserve the existing one-hour event-start notification.
   Future<void> scheduleEventReminderHourBefore(EventModel event) async {
+    if (!_canUsePlugin) return;
     final reminderTime = event.date.subtract(const Duration(hours: 1));
 
     if (reminderTime.isBefore(DateTime.now())) return;
@@ -261,6 +268,7 @@ class NotificationService {
 
   /// Cancel all reminders for a specific event
   Future<void> cancelEventReminders(String eventId) async {
+    if (!_canUsePlugin) return;
     for (final daysBefore in EventModel.supportedReminderDays) {
       await _plugin.cancel(_reminderNotificationId(eventId, daysBefore));
     }
@@ -294,11 +302,13 @@ class NotificationService {
 
   /// Cancel all notifications
   Future<void> cancelAll() async {
+    if (!_canUsePlugin) return;
     await _plugin.cancelAll();
   }
 
   /// Get list of pending (scheduled) notifications
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    if (!_canUsePlugin) return const [];
     return await _plugin.pendingNotificationRequests();
   }
 }

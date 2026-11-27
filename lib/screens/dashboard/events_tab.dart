@@ -130,32 +130,56 @@ class _EventsTabState extends State<EventsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = theme.colorScheme;
     final categories = ['Semua', 'Akademik', 'Organisasi', 'Lomba', 'Seminar'];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Manajemen Event'),
+        title: Text(
+          'Manajemen Event',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
+          ),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
+            padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
+                  horizontal: 11,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.successGreen.withOpacity(0.12),
+                  color: AppTheme.successGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'Live Firebase',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.successGreen,
+                  border: Border.all(
+                    color: AppTheme.successGreen.withValues(alpha: 0.2),
                   ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.successGreen,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Live Firebase',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.successGreen,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -175,15 +199,14 @@ class _EventsTabState extends State<EventsTab> {
                 ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppTheme.darkCard
-                        : Colors.indigo.withOpacity(0.04),
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.indigo.withOpacity(0.05),
+                      color: colorScheme.onSurface.withValues(
+                        alpha: isDark ? 0.08 : 0.06,
+                      ),
                     ),
+                    boxShadow: AppTheme.softShadow(context),
                   ),
                   child: TextField(
                     controller: _searchController,
@@ -256,10 +279,14 @@ class _EventsTabState extends State<EventsTab> {
                         selectedColor: AppTheme.primaryIndigo,
                         backgroundColor: isDark
                             ? AppTheme.darkCard
-                            : Colors.indigo.withOpacity(0.04),
+                            : Colors.indigo.withValues(alpha: 0.04),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
-                          side: const BorderSide(color: Colors.transparent),
+                          side: BorderSide(
+                            color: isSelected
+                                ? Colors.transparent
+                                : colorScheme.onSurface.withValues(alpha: 0.08),
+                          ),
                         ),
                       ),
                     );
@@ -306,7 +333,7 @@ class _EventsTabState extends State<EventsTab> {
                                   shape: BoxShape.circle,
                                   color: isDark
                                       ? AppTheme.darkCard
-                                      : Colors.indigo.withOpacity(0.04),
+                                      : Colors.indigo.withValues(alpha: 0.04),
                                 ),
                                 child: Icon(
                                   Icons.event_note_rounded,

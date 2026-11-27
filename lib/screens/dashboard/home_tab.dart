@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/event_card.dart';
-import '../../widgets/stat_card.dart';
-import '../admin/admin_login_screen.dart';
 import '../event/add_edit_event_screen.dart';
 import '../event/event_detail_screen.dart';
 
@@ -130,9 +128,100 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
+  Widget _buildKpiStrip({
+    required int total,
+    required int active,
+    required int completed,
+    required bool isDark,
+  }) {
+    final metrics = [
+      (label: 'Total Event', value: total, icon: Icons.event_note_rounded),
+      (label: 'Event Aktif', value: active, icon: Icons.bolt_rounded),
+      (
+        label: 'Selesai',
+        value: completed,
+        icon: Icons.task_alt_rounded,
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.07)
+              : AppTheme.primaryNavy.withValues(alpha: 0.055),
+        ),
+        boxShadow: AppTheme.softShadow(context),
+      ),
+      child: Row(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            if (index > 0)
+              Container(
+                width: 1,
+                height: 34,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.1),
+              ),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        metrics[index].icon,
+                        color: [
+                          AppTheme.primaryIndigo,
+                          AppTheme.successGreen,
+                          AppTheme.warningOrange,
+                        ][index],
+                        size: 16,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${metrics[index].value}',
+                        maxLines: 1,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                              fontWeight: FontWeight.w800,
+                              height: 1,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    metrics[index].label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.58),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final categories = ['Semua', 'Akademik', 'Organisasi', 'Lomba', 'Seminar'];
@@ -155,14 +244,18 @@ class _HomeTabState extends State<HomeTab> {
                     right: 24,
                   ),
                   decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
+                    gradient: const LinearGradient(
+                      colors: [AppTheme.primaryNavy, Color(0xFF4338CA)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(32),
                       bottomRight: Radius.circular(32),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryNavy.withOpacity(0.15),
+                        color: AppTheme.primaryNavy.withValues(alpha: 0.15),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -175,87 +268,71 @@ class _HomeTabState extends State<HomeTab> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Halo, Selamat Datang 👋',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontWeight: FontWeight.w500,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Halo, Selamat Datang 👋',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                user?.name ?? 'Mahasiswa',
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                  letterSpacing: -0.5,
+                                const SizedBox(height: 4),
+                                Text(
+                                  user?.name ?? 'Mahasiswa',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    letterSpacing: -0.5,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          Stack(
+                            alignment: Alignment.bottomRight,
                             children: [
-                              IconButton(
-                                tooltip: 'Login Admin',
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const AdminLoginScreen(),
+                              Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    width: 2,
+                                  ),
+                                  color: Colors.white24,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    (user?.name.isNotEmpty == true)
+                                        ? user!.name[0].toUpperCase()
+                                        : 'M',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.verified_user_rounded,
-                                  color: Colors.white,
+                                  ),
                                 ),
                               ),
-                              Stack(
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.2),
-                                        width: 2,
-                                      ),
-                                      color: Colors.white24,
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        (user?.name.isNotEmpty == true)
-                                            ? user!.name[0].toUpperCase()
-                                            : 'M',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
+                              Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.successGreen,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppTheme.primaryNavy,
+                                    width: 2,
                                   ),
-                                  Container(
-                                    width: 14,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.successGreen,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: AppTheme.primaryNavy,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
@@ -265,35 +342,40 @@ class _HomeTabState extends State<HomeTab> {
                       // Search TextField
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
-                            width: 1,
-                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryNavy.withValues(
+                                alpha: 0.12,
+                              ),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
                         ),
                         child: TextField(
                           controller: _searchController,
                           style: const TextStyle(
-                            color: Colors.white,
+                            color: AppTheme.primaryNavy,
                             fontSize: 15,
                           ),
                           onChanged: (val) => appState.setSearchQuery(val),
                           decoration: InputDecoration(
-                            hintText: 'Cari nama event, lokasi, PIC...',
-                            hintStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.5),
+                            hintText: 'Cari event, lokasi, atau PIC...',
+                            hintStyle: const TextStyle(
+                              color: AppTheme.lightTextSecondary,
                               fontSize: 14,
                             ),
                             prefixIcon: const Icon(
                               Icons.search_rounded,
-                              color: Colors.white70,
+                              color: AppTheme.primaryIndigo,
                             ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
                                     icon: const Icon(
                                       Icons.clear_rounded,
-                                      color: Colors.white70,
+                                      color: AppTheme.lightTextSecondary,
                                     ),
                                     onPressed: () {
                                       _searchController.clear();
@@ -316,7 +398,7 @@ class _HomeTabState extends State<HomeTab> {
 
               // Statistics Section
               SliverPadding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,48 +413,12 @@ class _HomeTabState extends State<HomeTab> {
                               : AppTheme.lightTextPrimary,
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      // Responsive statistics grid
-                      GridView(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: size.width < 360
-                              ? 0.75
-                              : (size.width < 420 ? 0.82 : 0.95),
-                        ),
-                        children: [
-                          StatCard(
-                            title: 'Total Event',
-                            value: '${appState.totalEventsCount}',
-                            icon: Icons.event_note_rounded,
-                            gradientColors: const [
-                              Color(0xFF6366F1),
-                              Color(0xFF4F46E5),
-                            ],
-                          ),
-                          StatCard(
-                            title: 'Event Aktif',
-                            value: '${appState.activeEventsCount}',
-                            icon: Icons.check_circle_rounded,
-                            gradientColors: const [
-                              Color(0xFF10B981),
-                              Color(0xFF059669),
-                            ],
-                          ),
-                          StatCard(
-                            title: 'Selesai',
-                            value: '${appState.completedEventsCount}',
-                            icon: Icons.assignment_turned_in_rounded,
-                            gradientColors: const [
-                              Color(0xFF64748B),
-                              Color(0xFF475569),
-                            ],
-                          ),
-                        ],
+                      const SizedBox(height: 12),
+                      _buildKpiStrip(
+                        total: appState.totalEventsCount,
+                        active: appState.activeEventsCount,
+                        completed: appState.completedEventsCount,
+                        isDark: isDark,
                       ),
                     ],
                   ),
@@ -432,7 +478,7 @@ class _HomeTabState extends State<HomeTab> {
                               checkmarkColor: Colors.white,
                               backgroundColor: isDark
                                   ? AppTheme.darkCard
-                                  : Colors.indigo.withOpacity(0.04),
+                                  : Colors.indigo.withValues(alpha: 0.04),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                                 side: BorderSide(
@@ -440,7 +486,9 @@ class _HomeTabState extends State<HomeTab> {
                                       ? Colors.transparent
                                       : (isDark
                                             ? Colors.white10
-                                            : Colors.indigo.withOpacity(0.05)),
+                                            : Colors.indigo.withValues(
+                                                alpha: 0.05,
+                                              )),
                                 ),
                               ),
                             ),
@@ -497,7 +545,7 @@ class _HomeTabState extends State<HomeTab> {
                                   shape: BoxShape.circle,
                                   color: isDark
                                       ? AppTheme.darkCard
-                                      : Colors.indigo.withOpacity(0.04),
+                                      : Colors.indigo.withValues(alpha: 0.04),
                                 ),
                                 child: Icon(
                                   Icons.event_busy_rounded,
@@ -539,6 +587,7 @@ class _HomeTabState extends State<HomeTab> {
                           return EventCard(
                             event: event,
                             showActions: appState.canManageEvent(event),
+                            isFeatured: true,
                             onTap: () {
                               Navigator.push(
                                 context,

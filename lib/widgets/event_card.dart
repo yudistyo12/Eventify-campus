@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import '../theme/app_theme.dart';
+import 'event_image.dart';
 
 class EventCard extends StatelessWidget {
   final EventModel event;
@@ -9,6 +10,7 @@ class EventCard extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final bool showActions;
+  final bool isFeatured;
 
   const EventCard({
     super.key,
@@ -17,6 +19,7 @@ class EventCard extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.showActions,
+    this.isFeatured = false,
   });
 
   IconData _getCategoryIcon(String category) {
@@ -36,217 +39,463 @@ class EventCard extends StatelessWidget {
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'akademik':
-        return const Color(0xFF3B82F6); // Blue
+        return AppTheme.primaryIndigo;
       case 'lomba':
-        return const Color(0xFFF59E0B); // Amber/Yellow
+        return AppTheme.warningOrange;
       case 'seminar':
-        return const Color(0xFF8B5CF6); // Purple
+        return AppTheme.accentPink;
       case 'organisasi':
       default:
-        return AppTheme.primaryIndigo; // Indigo
+        return AppTheme.successGreen;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final catColor = _getCategoryColor(event.category);
     final catIcon = _getCategoryIcon(event.category);
-    final dateFormatted = DateFormat('dd MMM yyyy, HH:mm').format(event.date);
-
-    final isCompleted = event.status == 'Selesai';
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final card = isFeatured
+        ? _buildMagazineCard(context, catColor, catIcon, scheme)
+        : _buildHorizontalCard(context, catColor, catIcon, scheme);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(isFeatured ? 24 : 20),
         border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.04)
-              : Colors.indigo.withOpacity(0.04),
-          width: 1,
+          color: scheme.onSurface.withValues(alpha: isDark ? 0.07 : 0.055),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.indigo.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: AppTheme.softShadow(context),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            child: Row(
+        borderRadius: BorderRadius.circular(isFeatured ? 24 : 20),
+        child: Material(color: Colors.transparent, child: card),
+      ),
+    );
+  }
+
+  Widget _buildMagazineCard(
+    BuildContext context,
+    Color categoryColor,
+    IconData categoryIcon,
+    ColorScheme scheme,
+  ) {
+    final secondaryColor = scheme.onSurface.withValues(alpha: 0.58);
+    final isCompleted = event.status == 'Selesai';
+
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 176,
+            child: Stack(
+              fit: StackFit.expand,
               children: [
-                // Category Side Highlight Indicator
-                Container(width: 6, height: 110, color: catColor),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
+                EventImage(
+                  imageUrl: event.imageUrl,
+                  fallback: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          categoryColor.withValues(alpha: 0.82),
+                          AppTheme.primaryNavy,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Top row with Category and Status pill
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(catIcon, size: 14, color: catColor),
-                                const SizedBox(width: 4),
-                                Text(
-                                  event.category,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: catColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isCompleted
-                                    ? (isDark
-                                          ? Colors.white10
-                                          : Colors.black.withOpacity(0.05))
-                                    : (isDark
-                                          ? AppTheme.successGreen.withOpacity(
-                                              0.15,
-                                            )
-                                          : AppTheme.successGreen.withOpacity(
-                                              0.1,
-                                            )),
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                              child: Text(
-                                event.status,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCompleted
-                                      ? (isDark
-                                            ? AppTheme.darkTextSecondary
-                                            : AppTheme.lightTextSecondary)
-                                      : AppTheme.successGreen,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        // Event Name
-                        Text(
-                          event.name,
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: isDark
-                                ? AppTheme.darkTextPrimary
-                                : AppTheme.lightTextPrimary,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 6),
-                        // Date Info
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_month_rounded,
-                              size: 13,
-                              color: isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              dateFormatted,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? AppTheme.darkTextSecondary
-                                    : AppTheme.lightTextSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        // Location Info
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_rounded,
-                              size: 13,
-                              color: isDark
-                                  ? AppTheme.darkTextSecondary
-                                  : AppTheme.lightTextSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                event.location,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isDark
-                                      ? AppTheme.darkTextSecondary
-                                      : AppTheme.lightTextSecondary,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                    child: Icon(
+                      categoryIcon,
+                      size: 54,
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
-                if (showActions)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            Icons.edit_rounded,
-                            size: 20,
-                            color: AppTheme.primaryIndigo,
-                          ),
-                          onPressed: onEdit,
-                          tooltip: 'Edit Event',
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.delete_rounded,
-                            size: 20,
-                            color: AppTheme.accentPink,
-                          ),
-                          onPressed: onDelete,
-                          tooltip: 'Hapus Event',
-                        ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x44000000),
+                        Colors.transparent,
+                        Color(0x99000000),
                       ],
+                      stops: [0, 0.45, 1],
                     ),
                   ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: _imagePill(
+                    icon: categoryIcon,
+                    label: event.category,
+                    color: categoryColor,
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: _imagePill(
+                    icon: Icons.circle,
+                    label: event.status,
+                    color: isCompleted
+                        ? AppTheme.warningOrange
+                        : AppTheme.successGreen,
+                    dotOnly: true,
+                  ),
+                ),
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: _imagePill(
+                    icon: Icons.calendar_month_rounded,
+                    label: DateFormat('dd MMM yyyy').format(event.date),
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        event.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
+                              color: scheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                              height: 1.15,
+                            ),
+                      ),
+                    ),
+                    if (showActions) ...[
+                      IconButton(
+                        tooltip: 'Edit Event',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onEdit,
+                        icon: Icon(
+                          Icons.edit_rounded,
+                          size: 19,
+                          color: scheme.brightness == Brightness.dark
+                              ? AppTheme.secondaryIndigo
+                              : AppTheme.primaryIndigo,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Hapus Event',
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onDelete,
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          size: 20,
+                          color: AppTheme.accentPink,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.schedule_rounded,
+                      size: 15,
+                      color: scheme.brightness == Brightness.dark
+                          ? AppTheme.secondaryIndigo
+                          : AppTheme.primaryIndigo.withValues(alpha: 0.9),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        DateFormat('dd MMM yyyy · HH:mm').format(event.date),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: secondaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: secondaryColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        event.location,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: secondaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalCard(
+    BuildContext context,
+    Color categoryColor,
+    IconData categoryIcon,
+    ColorScheme scheme,
+  ) {
+    final secondaryColor = scheme.onSurface.withValues(alpha: 0.58);
+    final statusColor = event.status == 'Selesai'
+        ? AppTheme.warningOrange
+        : AppTheme.successGreen;
+
+    return InkWell(
+      onTap: onTap,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 92,
+            height: 126,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                EventImage(
+                  imageUrl: event.imageUrl,
+                  fallback: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          categoryColor.withValues(alpha: 0.82),
+                          AppTheme.primaryNavy,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Icon(
+                      categoryIcon,
+                      color: Colors.white.withValues(alpha: 0.85),
+                      size: 34,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 5,
+                  right: 5,
+                  bottom: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.56),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text(
+                      DateFormat('dd MMM').format(event.date),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 8, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          event.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: categoryColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: statusColor,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        event.status,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: statusColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    event.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      height: 1.15,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule_rounded,
+                        size: 13,
+                        color: secondaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          DateFormat('dd MMM yyyy · HH:mm').format(event.date),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: secondaryColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 13,
+                        color: secondaryColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: secondaryColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (showActions)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.edit_rounded,
+                      size: 18,
+                      color: scheme.brightness == Brightness.dark
+                          ? AppTheme.secondaryIndigo
+                          : AppTheme.primaryIndigo,
+                    ),
+                    onPressed: onEdit,
+                    tooltip: 'Edit Event',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline_rounded,
+                      size: 19,
+                      color: AppTheme.accentPink,
+                    ),
+                    onPressed: onDelete,
+                    tooltip: 'Hapus Event',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _imagePill({
+    required IconData icon,
+    required String label,
+    required Color color,
+    bool dotOnly = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.48),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (dotOnly)
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            )
+          else
+            Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

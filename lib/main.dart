@@ -1,3 +1,5 @@
+
+import 'package:device_preview/device_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,7 +15,9 @@ import 'theme/app_theme.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   debugPrint('[FCM] Background message: ${message.messageId}');
 }
@@ -21,11 +25,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Konfigurasi notifikasi khusus Android
   if (!kIsWeb) {
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    FirebaseMessaging.onBackgroundMessage(
+      firebaseMessagingBackgroundHandler,
+    );
 
     await FirebaseMessaging.instance.requestPermission(
       alert: true,
@@ -36,6 +44,7 @@ Future<void> main() async {
     await FirebaseMessaging.instance.subscribeToTopic('all_users');
 
     await NotificationService().initialize();
+
     FirebaseMessaging.onMessage.listen((message) async {
       await NotificationService().showRemoteMessage(message);
     });
@@ -47,7 +56,10 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => AdminState()),
       ],
-      child: const MyApp(),
+      child: DevicePreview(
+      enabled: !kReleaseMode,
+      builder: (context) => const MyApp(),
+),
     ),
   );
 }
@@ -57,13 +69,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Eventify Campus',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      home: const SplashScreen(),
+    return Consumer<AppState>(
+      builder: (context, appState, _) => MaterialApp(
+        title: 'Eventify Campus',
+        debugShowCheckedModeBanner: false,
+
+        // Konfigurasi Device Preview
+        locale: DevicePreview.locale(context),
+        builder: DevicePreview.appBuilder,
+
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: appState.themeMode,
+        home: const SplashScreen(),
+      ),
     );
   }
 }

@@ -1,10 +1,66 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:image/image.dart' as img;
 import '../models/event_model.dart';
+
+const maxEventImageBytes = 200 * 1024;
+
+Future<Uint8List> compressEventImage(Uint8List sourceBytes) {
+  return compute(_compressEventImage, sourceBytes);
+}
+
+Uint8List _compressEventImage(Uint8List sourceBytes) {
+  final decoded = img.decodeImage(sourceBytes);
+  if (decoded == null) {
+    throw const FormatException('File yang dipilih bukan gambar yang valid.');
+  }
+
+  final largestDimension =
+      decoded.width >= decoded.height ? decoded.width : decoded.height;
+  final resizeBounds = <int>{
+    if (largestDimension <= 800) largestDimension,
+    800,
+    720,
+    640,
+    560,
+    480,
+  }.where((bound) => bound <= largestDimension);
+
+  for (final bound in resizeBounds) {
+    final resized = largestDimension <= bound
+        ? decoded
+        : decoded.width >= decoded.height
+        ? img.copyResize(decoded, width: bound)
+        : img.copyResize(decoded, height: bound);
+    for (final quality in [60, 55, 50, 45, 40, 35, 30]) {
+      final compressed = Uint8List.fromList(
+        img.encodeJpg(resized, quality: quality),
+      );
+      if (compressed.length <= maxEventImageBytes) return compressed;
+    }
+  }
+
+  throw ArgumentError(
+    'Gambar tidak dapat dikompresi hingga di bawah 200 KB. Pilih gambar lain.',
+  );
+}
 
 class EventService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  static String encodeEventImage(Uint8List bytes) {
+    if (bytes.isEmpty || bytes.length > maxEventImageBytes) {
+      throw ArgumentError('Ukuran gambar harus di bawah 200 KB.');
+    }
+    if (bytes.length < 2 || bytes[0] != 0xff || bytes[1] != 0xd8) {
+      throw ArgumentError('Gambar harus dikompresi ke format JPEG.');
+    }
+    return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+  }
 
   // =============================================
   // PUBLIC QUERIES (Pengunjung & User)
@@ -226,7 +282,11 @@ class EventService {
         message: 'Hanya pemilik event yang dapat mengubahnya.',
       );
     }
-    await _firestore.collection('events').doc(event.id).update(event.toMap());
+    final eventData = event.toMap();
+    if (event.imageUrl == null) {
+      eventData['imageUrl'] = FieldValue.delete();
+    }
+    await eventRef.update(eventData);
   }
 
   /// DELETE: Delete existing Event

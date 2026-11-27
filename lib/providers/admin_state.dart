@@ -43,26 +43,19 @@ class AdminState extends ChangeNotifier {
   // AUTH ACTIONS
   // =============================================
 
-  /// Login sebagai admin
-  Future<void> adminLogin(String email, String password) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      _adminUser = await _authService.adminLogin(
-        email: email,
-        password: password,
-      );
-      _isAdminLoggedIn = true;
-
-      // Mulai listen semua stream event
-      _startListeningEvents();
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
+  /// Starts the admin session after the shared login verifies the user role.
+  Future<void> activateAdminSession(UserModel user) async {
+    if (!user.isAdmin) {
+      throw StateError('Akun ini tidak memiliki hak akses admin.');
     }
+    await _activateAdminSession(user);
+  }
 
+  Future<void> _activateAdminSession(UserModel user) async {
+    await _stopListeningEvents();
+    _adminUser = user;
+    _isAdminLoggedIn = true;
+    _startListeningEvents();
     _isLoading = false;
     notifyListeners();
   }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../models/event_model.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/event_image.dart';
 import 'add_edit_event_screen.dart';
 
 class EventDetailScreen extends StatelessWidget {
@@ -28,14 +29,14 @@ class EventDetailScreen extends StatelessWidget {
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
       case 'akademik':
-        return const Color(0xFF3B82F6); // Blue
+        return AppTheme.primaryIndigo;
       case 'lomba':
-        return const Color(0xFFF59E0B); // Amber
+        return AppTheme.warningOrange;
       case 'seminar':
-        return const Color(0xFF8B5CF6); // Purple
+        return AppTheme.accentPink;
       case 'organisasi':
       default:
-        return AppTheme.primaryIndigo; // Indigo
+        return AppTheme.successGreen;
     }
   }
 
@@ -47,6 +48,7 @@ class EventDetailScreen extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final catColor = _getCategoryColor(event.category);
     final catIcon = _getCategoryIcon(event.category);
+    final hasEventImage = event.imageUrl?.isNotEmpty == true;
 
     final dayFormatted = DateFormat('EEEE').format(event.date);
     final dateFormatted = DateFormat('dd MMMM yyyy').format(event.date);
@@ -104,17 +106,34 @@ class EventDetailScreen extends StatelessWidget {
                 ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [catColor.withOpacity(0.8), catColor],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  EventImage(
+                    imageUrl: event.imageUrl,
+                    fallback: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [catColor.withOpacity(0.8), catColor],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      ),
+                    ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryNavy.withValues(alpha: 0.34),
+                          AppTheme.primaryNavy.withValues(alpha: 0.58),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
                   ),
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
+                  if (!hasEventImage)
                     Positioned(
                       right: -30,
                       bottom: -20,
@@ -124,42 +143,36 @@ class EventDetailScreen extends StatelessWidget {
                         color: Colors.white.withOpacity(0.12),
                       ),
                     ),
-                    Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 40),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white.withValues(alpha: 0.2),
-                          ),
-                          child: Icon(catIcon, size: 48, color: Colors.white),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          child: Text(
-                            event.category.toUpperCase(),
+                  Positioned(
+                    left: 24,
+                    bottom: 24,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(catIcon, size: 15, color: catColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            event.category,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.bold,
                               color: catColor,
-                              letterSpacing: 1.0,
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -242,7 +255,7 @@ class EventDetailScreen extends StatelessWidget {
                     _buildDetailRow(
                       context: context,
                       icon: Icons.calendar_month_rounded,
-                      iconColor: Colors.blue,
+                      iconColor: AppTheme.primaryIndigo,
                       title: 'Tanggal & Waktu',
                       subtitle: '$dayFormatted, $dateFormatted',
                       trailing: timeFormatted,
@@ -251,7 +264,7 @@ class EventDetailScreen extends StatelessWidget {
                     _buildDetailRow(
                       context: context,
                       icon: Icons.location_on_rounded,
-                      iconColor: Colors.red,
+                      iconColor: AppTheme.accentPink,
                       title: 'Lokasi Pelaksanaan',
                       subtitle: event.location,
                     ),
@@ -259,7 +272,7 @@ class EventDetailScreen extends StatelessWidget {
                     _buildDetailRow(
                       context: context,
                       icon: Icons.person_pin_rounded,
-                      iconColor: Colors.orange,
+                      iconColor: AppTheme.successGreen,
                       title: 'Penanggung Jawab (PIC)',
                       subtitle: event.pic,
                     ),

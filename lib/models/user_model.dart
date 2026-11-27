@@ -29,13 +29,18 @@ class UserModel {
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map, String docId) {
+    final role = map['role'];
+    if (role != 'user' && role != 'admin') {
+      throw const FormatException('Role akun tidak valid.');
+    }
+
     return UserModel(
       uid: docId,
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       nim: map['nim'] ?? '',
       major: map['major'] ?? '',
-      role: map['role'] ?? 'user',
+      role: role as String,
     );
   }
 

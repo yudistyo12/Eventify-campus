@@ -20,7 +20,7 @@ class AppTheme {
   static const Color darkBg = Color(0xFF0B0F19); // Custom deep dark navy
   static const Color darkCard = Color(0xFF1E293B); // Slate 800
   static const Color darkTextPrimary = Color(0xFFF8FAFC);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  static const Color darkTextSecondary = Color(0xFFCBD5E1);
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
@@ -30,7 +30,7 @@ class AppTheme {
   );
 
   static const LinearGradient premiumGradient = LinearGradient(
-    colors: [primaryIndigo, Color(0xFFEC4899)], // Indigo to Pink
+    colors: [primaryIndigo, accentPink],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -42,10 +42,7 @@ class AppTheme {
   );
 
   static const LinearGradient glassGradient = LinearGradient(
-    colors: [
-      Color(0x22FFFFFF),
-      Color(0x0AFFFFFF),
-    ],
+    colors: [Color(0x22FFFFFF), Color(0x0AFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -55,7 +52,9 @@ class AppTheme {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return [
       BoxShadow(
-        color: isDark ? Colors.black.withOpacity(0.3) : Colors.indigo.withOpacity(0.06),
+        color: isDark
+            ? Colors.black.withOpacity(0.3)
+            : Colors.indigo.withOpacity(0.06),
         blurRadius: 16,
         offset: const Offset(0, 8),
       ),
@@ -68,6 +67,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       primaryColor: primaryIndigo,
+      fontFamily: GoogleFonts.outfit().fontFamily,
       scaffoldBackgroundColor: lightBg,
       colorScheme: const ColorScheme.light(
         primary: primaryIndigo,
@@ -89,28 +89,22 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: lightTextPrimary,
         ),
-        bodyLarge: GoogleFonts.outfit(
-          fontSize: 16,
-          color: lightTextPrimary,
-        ),
-        bodyMedium: GoogleFonts.outfit(
-          fontSize: 14,
-          color: lightTextSecondary,
-        ),
+        bodyLarge: GoogleFonts.outfit(fontSize: 16, color: lightTextPrimary),
+        bodyMedium: GoogleFonts.outfit(fontSize: 14, color: lightTextSecondary),
       ),
       cardTheme: CardThemeData(
         color: lightCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: Colors.indigo.withOpacity(0.04), width: 1),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: lightTextPrimary),
-        titleTextStyle: TextStyle(
+        iconTheme: const IconThemeData(color: lightTextPrimary),
+        titleTextStyle: GoogleFonts.outfit(
           color: lightTextPrimary,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -119,9 +113,7 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryIndigo,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -132,6 +124,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: primaryIndigo,
+      fontFamily: GoogleFonts.outfit().fontFamily,
       scaffoldBackgroundColor: darkBg,
       colorScheme: const ColorScheme.dark(
         primary: primaryIndigo,
@@ -141,6 +134,14 @@ class AppTheme {
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: darkTextPrimary,
+        onSurfaceVariant: darkTextSecondary,
+      ),
+      iconTheme: const IconThemeData(color: darkTextPrimary),
+      inputDecorationTheme: const InputDecorationTheme(
+        hintStyle: TextStyle(color: darkTextSecondary),
+        labelStyle: TextStyle(color: darkTextSecondary),
+        prefixIconColor: secondaryIndigo,
+        suffixIconColor: darkTextSecondary,
       ),
       textTheme: GoogleFonts.outfitTextTheme().copyWith(
         displayLarge: GoogleFonts.outfit(
@@ -153,28 +154,22 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: darkTextPrimary,
         ),
-        bodyLarge: GoogleFonts.outfit(
-          fontSize: 16,
-          color: darkTextPrimary,
-        ),
-        bodyMedium: GoogleFonts.outfit(
-          fontSize: 14,
-          color: darkTextSecondary,
-        ),
+        bodyLarge: GoogleFonts.outfit(fontSize: 16, color: darkTextPrimary),
+        bodyMedium: GoogleFonts.outfit(fontSize: 14, color: darkTextSecondary),
       ),
       cardTheme: CardThemeData(
         color: darkCard,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(18),
           side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: darkTextPrimary),
-        titleTextStyle: TextStyle(
+        iconTheme: const IconThemeData(color: darkTextPrimary),
+        titleTextStyle: GoogleFonts.outfit(
           color: darkTextPrimary,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -183,9 +178,7 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primaryIndigo,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

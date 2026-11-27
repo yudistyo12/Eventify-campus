@@ -1,16 +1,22 @@
-# eventify_campus
+# Eventify Campus
 
-A new Flutter project.
+Aplikasi Flutter lintas platform untuk melihat dan mengelola kegiatan kampus. Pengajuan event ditinjau admin sebelum dipublikasikan.
 
-## Getting Started
+## Menjalankan aplikasi
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+Pastikan Firebase Authentication dan Cloud Firestore sudah dikonfigurasi untuk platform yang digunakan.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Poster event
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Poster dikompresi menjadi JPEG dengan lebar maksimal 800 piksel dan ukuran maksimal 200 KB. Data gambar disimpan sebagai Base64 data URI pada field `imageUrl` di dokumen event. Karena Base64 memperbesar ukuran data, batas 200 KB menjaga dokumen tetap di bawah batas ukuran Cloud Firestore.
+
+Setelah memilih Firebase project yang benar, deploy aturan Firestore:
+
+```bash
+firebase deploy --only firestore:rules
+```

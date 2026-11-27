@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/admin_state.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import 'admin/admin_dashboard_screen.dart';
 import 'dashboard/dashboard_layout.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,9 +54,43 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    final appState = context.read<AppState>();
+    await appState.initialized;
+    if (!mounted) return;
+
+    Widget destination;
+    if (appState.authInitializationError != null) {
+      destination = LoginScreen(
+        initialMessage: appState.authInitializationError,
+      );
+    } else {
+      final user = appState.currentUser;
+      if (user?.isAdmin == true) {
+        try {
+          await context.read<AdminState>().activateAdminSession(user!);
+          destination = const AdminDashboardScreen();
+        } catch (error, stackTrace) {
+          debugPrint('Could not restore the admin session: $error');
+          debugPrintStack(stackTrace: stackTrace);
+          try {
+            await appState.logout();
+          } catch (logoutError, logoutStackTrace) {
+            debugPrint('Could not clear the failed admin session: $logoutError');
+            debugPrintStack(stackTrace: logoutStackTrace);
+          }
+          destination = const LoginScreen(
+            initialMessage: 'Sesi admin tidak dapat diverifikasi. Silakan masuk kembali.',
+          );
+        }
+      } else {
+        destination = const DashboardLayout();
+      }
+    }
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const DashboardLayout()),
+      MaterialPageRoute(builder: (context) => destination),
     );
   }
 

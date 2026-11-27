@@ -20,68 +20,12 @@ class AuthService {
     final UserCredential credential = await _firebaseAuth
         .signInWithEmailAndPassword(email: email, password: password);
 
-    if (credential.user == null) {
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) {
       throw Exception("User tidak ditemukan");
     }
 
-    // Fetch additional profile from Firestore
-    final userDoc = await _firestore
-        .collection('users')
-        .doc(credential.user!.uid)
-        .get();
-    UserModel user;
-
-    if (userDoc.exists && userDoc.data() != null) {
-      user = UserModel.fromMap(userDoc.data()!, credential.user!.uid);
-    } else {
-      // Fallback profile if Firestore document does not exist yet
-      user = UserModel(
-        uid: credential.user!.uid,
-        name: email.split('@')[0],
-        email: email,
-        nim: 'N/A',
-        major: 'N/A',
-      );
-    }
-
-    // Cache user locally
-    await DatabaseHelper.saveLocalUser(user.toMap());
-    return user;
-  }
-
-  // Login Admin — verifikasi role admin di Firestore
-  Future<UserModel> adminLogin({
-    required String email,
-    required String password,
-  }) async {
-    final UserCredential credential = await _firebaseAuth
-        .signInWithEmailAndPassword(email: email, password: password);
-
-    if (credential.user == null) {
-      throw Exception("User tidak ditemukan");
-    }
-
-    // Wajib cek role admin dari Firestore
-    final userDoc = await _firestore
-        .collection('users')
-        .doc(credential.user!.uid)
-        .get();
-
-    if (!userDoc.exists || userDoc.data() == null) {
-      // Logout karena bukan akun admin yang terdaftar
-      await _firebaseAuth.signOut();
-      throw Exception("Akun tidak terdaftar sebagai admin");
-    }
-
-    final user = UserModel.fromMap(userDoc.data()!, credential.user!.uid);
-
-    if (!user.isAdmin) {
-      // Logout karena bukan admin
-      await _firebaseAuth.signOut();
-      throw Exception("Akun ini tidak memiliki hak akses admin");
-    }
-
-    return user;
+    return _loadVerifiedUser(firebaseUser);
   }
 
   // Cek apakah user saat ini adalah admin
@@ -89,17 +33,11 @@ class AuthService {
     final currentUser = _firebaseAuth.currentUser;
     if (currentUser == null) return false;
 
-    try {
-      final userDoc = await _firestore
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-      if (userDoc.exists && userDoc.data() != null) {
-        return userDoc.data()!['role'] == 'admin';
-      }
-    } catch (_) {}
-
-    return false;
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+    return userDoc.exists && userDoc.data()?['role'] == 'admin';
   }
 
   // Register
@@ -140,32 +78,29 @@ class AuthService {
     final currentUser = _firebaseAuth.currentUser;
     if (currentUser == null) return null;
 
+    return _loadVerifiedUser(currentUser);
+  }
+
+  Future<UserModel> _loadVerifiedUser(User firebaseUser) async {
     try {
       final userDoc = await _firestore
           .collection('users')
-          .doc(currentUser.uid)
+          .doc(firebaseUser.uid)
           .get();
-      if (userDoc.exists && userDoc.data() != null) {
-        return UserModel.fromMap(userDoc.data()!, currentUser.uid);
+      final userData = userDoc.data();
+      if (!userDoc.exists || userData == null) {
+        throw StateError('Profil akun tidak ditemukan di Firestore.');
       }
-    } catch (_) {
-      // Fallback to local cache
-    }
 
-    // Fallback user from shared_preferences cache
-    final cachedUser = await DatabaseHelper.getLocalUser();
-    if (cachedUser != null && cachedUser['uid'] == currentUser.uid) {
-      return UserModel.fromMap(cachedUser, currentUser.uid);
+      final user = UserModel.fromMap(userData, firebaseUser.uid);
+      await DatabaseHelper.saveLocalUser(user.toMap());
+      return user;
+    } catch (error, stackTrace) {
+      if (_firebaseAuth.currentUser?.uid == firebaseUser.uid) {
+        await _firebaseAuth.signOut();
+      }
+      Error.throwWithStackTrace(error, stackTrace);
     }
-
-    return UserModel(
-      uid: currentUser.uid,
-      name:
-          currentUser.displayName ?? currentUser.email?.split('@')[0] ?? 'User',
-      email: currentUser.email ?? '',
-      nim: 'N/A',
-      major: 'N/A',
-    );
   }
 
   // Sign Out

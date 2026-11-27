@@ -15,6 +15,13 @@ service cloud.firestore {
       return signedIn() && resource.data.createdBy == request.auth.uid;
     }
 
+    function validOptionalImageUrl() {
+      return !request.resource.data.keys().hasAny(['imageUrl'])
+        || request.resource.data.imageUrl == null
+        || (request.resource.data.imageUrl is string
+          && request.resource.data.imageUrl.size() <= 300000);
+    }
+
     function validEvent(eventId) {
       return request.resource.data.id == eventId
         && request.resource.data.name is string
@@ -22,6 +29,7 @@ service cloud.firestore {
         && request.resource.data.date is timestamp
         && request.resource.data.location is string
         && request.resource.data.description is string
+        && validOptionalImageUrl()
         && request.resource.data.status is string
         && request.resource.data.category is string
         && request.resource.data.createdAt is timestamp
@@ -66,6 +74,7 @@ service cloud.firestore {
           'date',
           'location',
           'description',
+          'imageUrl',
           'status',
           'category',
           'updatedAt',

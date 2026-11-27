@@ -7,6 +7,7 @@ class EventModel {
   final DateTime date;
   final String location;
   final String description;
+  final String? imageUrl;
   final String status; // "Aktif" / "Selesai" (status kegiatan)
   final String category; // "Akademik", "Organisasi", "Lomba", "Seminar"
   final DateTime createdAt;
@@ -28,6 +29,7 @@ class EventModel {
     required this.date,
     required this.location,
     required this.description,
+    this.imageUrl,
     required this.status,
     required this.category,
     required this.createdAt,
@@ -71,6 +73,7 @@ class EventModel {
       'date': Timestamp.fromDate(date),
       'location': location,
       'description': description,
+      if (imageUrl != null) 'imageUrl': imageUrl,
       'status': status,
       'category': category,
       'createdAt': Timestamp.fromDate(createdAt),
@@ -103,6 +106,7 @@ class EventModel {
       'date': date.toIso8601String(),
       'location': location,
       'description': description,
+      if (imageUrl != null) 'imageUrl': imageUrl,
       'status': status,
       'category': category,
       'createdAt': createdAt.toIso8601String(),
@@ -141,6 +145,7 @@ class EventModel {
       date: parseDate(map['date']),
       location: map['location'] ?? '',
       description: map['description'] ?? '',
+      imageUrl: map['imageUrl'] is String ? map['imageUrl'] as String : null,
       status: map['status'] ?? 'Aktif',
       category: map['category'] ?? 'Organisasi',
       createdAt: parseDate(map['createdAt']),
@@ -153,11 +158,15 @@ class EventModel {
       // Backward compatible: event lama tanpa approvalStatus dianggap approved
       approvalStatus: map['approvalStatus'] ?? 'approved',
       reviewedBy: map['reviewedBy'] as String?,
-      reviewedAt:
-          map['reviewedAt'] == null ? null : parseDate(map['reviewedAt']),
+      reviewedAt: map['reviewedAt'] == null
+          ? null
+          : parseDate(map['reviewedAt']),
       rejectionReason: map['rejectionReason'] as String?,
     );
   }
+
+  factory EventModel.fromMap(Map<String, dynamic> map, String docId) =>
+      EventModel.fromFirestore(map, docId);
 
   // Create EventModel from JSON Map (Shared Preferences)
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -170,6 +179,7 @@ class EventModel {
           : DateTime.now(),
       location: json['location'] ?? '',
       description: json['description'] ?? '',
+      imageUrl: json['imageUrl'] is String ? json['imageUrl'] as String : null,
       status: json['status'] ?? 'Aktif',
       category: json['category'] ?? 'Organisasi',
       createdAt: json['createdAt'] != null
@@ -200,6 +210,8 @@ class EventModel {
     DateTime? date,
     String? location,
     String? description,
+    String? imageUrl,
+    bool clearImageUrl = false,
     String? status,
     String? category,
     DateTime? createdAt,
@@ -219,6 +231,7 @@ class EventModel {
       date: date ?? this.date,
       location: location ?? this.location,
       description: description ?? this.description,
+      imageUrl: clearImageUrl ? null : imageUrl ?? this.imageUrl,
       status: status ?? this.status,
       category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,

@@ -30,7 +30,7 @@ void main() {
       ),
     );
   }
-
+  
   testWidgets('hides edit and delete controls for non-owners', (tester) async {
     await tester.pumpWidget(buildCard(showActions: false));
 

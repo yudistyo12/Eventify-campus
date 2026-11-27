@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/event_model.dart';
@@ -15,10 +16,13 @@ class AppState extends ChangeNotifier {
 
   bool _isLoading = false;
   bool _notificationsEnabled = true;
+  bool _isDarkMode = false;
   UserModel? _currentUser;
+  String? _authInitializationError;
   List<EventModel> _events = [];
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
+  late final Future<void> _initialized;
 
   // Subscriptions
   StreamSubscription<List<EventModel>>? _eventsSubscription;
@@ -26,7 +30,11 @@ class AppState extends ChangeNotifier {
   // Getters
   bool get isLoading => _isLoading;
   bool get notificationsEnabled => _notificationsEnabled;
+  bool get isDarkMode => _isDarkMode;
+  ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
   UserModel? get currentUser => _currentUser;
+  String? get authInitializationError => _authInitializationError;
+  Future<void> get initialized => _initialized;
   bool get isAuthenticated => _currentUser != null;
   List<EventModel> get events => _events;
   String get searchQuery => _searchQuery;
@@ -59,7 +67,7 @@ class AppState extends ChangeNotifier {
       _events.where((e) => e.status == 'Selesai').length;
 
   AppState() {
-    _initializeState();
+    _initialized = _initializeState();
   }
 
   // Initial load
@@ -69,9 +77,16 @@ class AppState extends ChangeNotifier {
 
     // Load notification preference
     _notificationsEnabled = await DatabaseHelper.isNotificationEnabled();
+    _isDarkMode = await DatabaseHelper.isDarkModeEnabled();
 
-    // Try to auto-login cached user
-    await refreshCurrentUser();
+    try {
+      await refreshCurrentUser();
+    } catch (error, stackTrace) {
+      _authInitializationError =
+          'Sesi tidak dapat diverifikasi. Silakan masuk kembali.';
+      debugPrint('Could not restore the authenticated user: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
 
     // Load events
     await loadEventsData();
@@ -82,8 +97,17 @@ class AppState extends ChangeNotifier {
 
   // Refresh User State
   Future<void> refreshCurrentUser() async {
-    _currentUser = await _authService.getCurrentUser();
-    notifyListeners();
+    try {
+      _currentUser = await _authService.getCurrentUser();
+      _authInitializationError = null;
+      notifyListeners();
+    } catch (error) {
+      _currentUser = null;
+      _authInitializationError =
+          'Sesi tidak dapat diverifikasi. Silakan masuk kembali.';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   // Load events from Firestore (real-time stream)
@@ -134,14 +158,23 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> toggleDarkMode(bool enabled) async {
+    await DatabaseHelper.setDarkModeEnabled(enabled);
+    _isDarkMode = enabled;
+    notifyListeners();
+  }
+
   // --- AUTH ACTIONS ---
 
-  Future<void> login(String email, String password) async {
+  Future<UserModel> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
+    late UserModel user;
 
     try {
-      _currentUser = await _authService.login(email: email, password: password);
+      user = await _authService.login(email: email, password: password);
+      _currentUser = user;
+      _authInitializationError = null;
       // Reload events to sync
       await loadEventsData();
     } catch (e) {
@@ -152,6 +185,7 @@ class AppState extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+    return user;
   }
 
   Future<void> register({
@@ -172,6 +206,7 @@ class AppState extends ChangeNotifier {
         nim: nim,
         major: major,
       );
+      _authInitializationError = null;
       // Reload events
       await loadEventsData();
     } catch (e) {
@@ -243,6 +278,7 @@ class AppState extends ChangeNotifier {
     required String status,
     required String category,
     required List<int> reminderDaysBefore,
+    Uint8List? imageBytes,
   }) async {
     final uid = _authService.currentUid;
     if (uid == null) {
@@ -253,13 +289,18 @@ class AppState extends ChangeNotifier {
       );
     }
 
+    final eventId = FirebaseFirestore.instance.collection('events').doc().id;
+    final imageUrl = imageBytes == null
+        ? null
+        : EventService.encodeEventImage(imageBytes);
     final newEvent = EventModel(
-      id: FirebaseFirestore.instance.collection('events').doc().id,
+      id: eventId,
       name: name,
       pic: pic,
       date: date,
       location: location,
       description: description,
+      imageUrl: imageUrl,
       status: status,
       category: category,
       createdAt: DateTime.now(),
@@ -316,6 +357,8 @@ class AppState extends ChangeNotifier {
     required String category,
     required DateTime createdAt,
     required List<int> reminderDaysBefore,
+    Uint8List? imageBytes,
+    bool removeImage = false,
   }) async {
     final cachedEvent = _events.cast<EventModel?>().firstWhere(
       (event) => event?.id == id,
@@ -330,6 +373,10 @@ class AppState extends ChangeNotifier {
       );
     }
 
+    final imageUrl = (imageBytes == null
+            ? null
+            : EventService.encodeEventImage(imageBytes)) ??
+        (removeImage ? null : existingEvent.imageUrl);
     final updatedEvent = EventModel(
       id: id,
       name: name,
@@ -337,6 +384,7 @@ class AppState extends ChangeNotifier {
       date: date,
       location: location,
       description: description,
+      imageUrl: imageUrl,
       status: status,
       category: category,
       createdAt: createdAt,

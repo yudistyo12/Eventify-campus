@@ -59,4 +59,23 @@ void main() {
 
     expect(restored.reminderDaysBefore, [7, 1]);
   });
+
+  test(
+    'optional event image URL survives JSON and Firestore serialization',
+    () {
+      final withImage = event.copyWith(
+        imageUrl: 'https://example.test/event.jpg',
+      );
+
+      expect(
+        EventModel.fromJson(withImage.toJson()).imageUrl,
+        withImage.imageUrl,
+      );
+      expect(
+        EventModel.fromFirestore(withImage.toMap(), event.id).imageUrl,
+        withImage.imageUrl,
+      );
+      expect(withImage.copyWith(clearImageUrl: true).imageUrl, isNull);
+    },
+  );
 }

@@ -7,7 +7,9 @@ import '../widgets/custom_text_field.dart';
 import 'dashboard/dashboard_layout.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final bool openAddEventAfterRegister;
+
+  const RegisterScreen({super.key, this.openAddEventAfterRegister = false});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -37,14 +39,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
         content: Row(
           children: [
             Icon(
-              isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              isError
+                  ? Icons.error_outline_rounded
+                  : Icons.check_circle_outline_rounded,
               color: Colors.white,
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
           ],
@@ -79,7 +86,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Redirect directly to Dashboard layout
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const DashboardLayout()),
+        MaterialPageRoute(
+          builder: (context) => DashboardLayout(
+            initialTab: widget.openAddEventAfterRegister ? 2 : 0,
+          ),
+        ),
         (route) => false,
       );
     } catch (e) {
@@ -99,7 +110,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Buat Akun Baru', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Buat Akun Baru',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
       ),
       body: Stack(
@@ -117,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
           ),
-          
+
           SafeArea(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -130,7 +144,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppTheme.darkTextPrimary : AppTheme.lightTextPrimary,
+                      color: isDark
+                          ? AppTheme.darkTextPrimary
+                          : AppTheme.lightTextPrimary,
                       letterSpacing: -0.5,
                     ),
                     textAlign: TextAlign.center,
@@ -140,13 +156,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Kelola aktivitas mahasiswa dan organisasi dengan mudah',
                     style: TextStyle(
                       fontSize: 14,
-                      color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                      color: isDark
+                          ? AppTheme.darkTextSecondary
+                          : AppTheme.lightTextSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Form Fields
                   Form(
                     key: _formKey,
@@ -211,7 +229,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (val == null || val.trim().isEmpty) {
                               return 'Alamat email wajib diisi';
                             }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
+                            if (!RegExp(
+                              r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                            ).hasMatch(val.trim())) {
                               return 'Format email tidak valid';
                             }
                             return null;
@@ -234,7 +254,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        
+
                         // Submit button
                         Consumer<AppState>(
                           builder: (context, appState, _) {
@@ -248,9 +268,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Login Screen Link
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -259,19 +279,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         'Sudah punya akun? ',
                         style: TextStyle(
                           fontSize: 14,
-                          color: isDark ? AppTheme.darkTextSecondary : AppTheme.lightTextSecondary,
+                          color: isDark
+                              ? AppTheme.darkTextSecondary
+                              : AppTheme.lightTextSecondary,
                         ),
                       ),
                       GestureDetector(
                         onTap: () {
                           Navigator.pop(context);
                         },
-                        child: const Text(
+                        child: Text(
                           'Masuk Sekarang',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.primaryIndigo,
+                            color: isDark
+                                ? AppTheme.secondaryIndigo
+                                : AppTheme.primaryIndigo,
                           ),
                         ),
                       ),
